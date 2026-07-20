@@ -97,14 +97,6 @@
       "imageUrl": "",
       "createdAt": "2026-07-20T07:45:00.000Z",
       "updatedAt": "2026-07-20T07:45:00.000Z"
-    },
-    {
-      "userId": 4,
-      "content": "123",
-      "imageUrl": "",
-      "createdAt": "2026-07-20T13:15:10.317Z",
-      "updatedAt": "2026-07-20T13:15:10.317Z",
-      "id": 8
     }
   ],
   "comments": [
@@ -198,16 +190,6 @@
       "postId": 5,
       "userId": 4,
       "id": 10
-    },
-    {
-      "postId": 8,
-      "userId": 4,
-      "id": 11
-    },
-    {
-      "postId": 8,
-      "userId": 1,
-      "id": 12
     }
   ],
   "conversations": [
