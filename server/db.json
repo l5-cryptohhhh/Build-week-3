@@ -39,6 +39,16 @@
       "bio": "Provaaaa",
       "createdAt": "2026-07-20T13:03:47.452Z",
       "id": 4
+    },
+    {
+      "email": "marcocozma97@gmail.com",
+      "password": "$2a$10$vdY4GmS51SzIK/Ro8sxhruGZQJIDBUdF4Nj1W0dNb8dLYNWyqX2F.",
+      "username": "mark97",
+      "fullName": "Marco Cozma",
+      "avatarUrl": "https://images.pexels.com/photos/13036108/pexels-photo-13036108.jpeg",
+      "bio": "PROMPT AI FULL-STACK",
+      "createdAt": "2026-07-20T13:33:53.164Z",
+      "id": 5
     }
   ],
   "posts": [
@@ -105,6 +115,14 @@
       "createdAt": "2026-07-20T13:15:10.317Z",
       "updatedAt": "2026-07-20T13:15:10.317Z",
       "id": 8
+    },
+    {
+      "userId": 5,
+      "content": "Siamo dei treni!!!",
+      "imageUrl": "",
+      "createdAt": "2026-07-20T13:34:12.523Z",
+      "updatedAt": "2026-07-20T13:35:55.722Z",
+      "id": 9
     }
   ],
   "comments": [
@@ -156,6 +174,13 @@
       "content": "cojone",
       "createdAt": "2026-07-20T13:06:05.330Z",
       "id": 7
+    },
+    {
+      "postId": 8,
+      "userId": 5,
+      "content": "4 5 6",
+      "createdAt": "2026-07-20T13:34:01.596Z",
+      "id": 8
     }
   ],
   "likes": [
@@ -208,6 +233,16 @@
       "postId": 8,
       "userId": 1,
       "id": 12
+    },
+    {
+      "postId": 8,
+      "userId": 5,
+      "id": 13
+    },
+    {
+      "postId": 6,
+      "userId": 5,
+      "id": 14
     }
   ],
   "conversations": [
@@ -228,6 +263,12 @@
       "participant2Id": 1,
       "createdAt": "2026-07-20T13:06:44.171Z",
       "id": 3
+    },
+    {
+      "participant1Id": 5,
+      "participant2Id": 4,
+      "createdAt": "2026-07-20T13:34:22.346Z",
+      "id": 4
     }
   ],
   "messages": [
@@ -326,6 +367,22 @@
       "read": true,
       "createdAt": "2026-07-20T13:18:23.838Z",
       "id": 12
+    },
+    {
+      "conversationId": 4,
+      "userId": 5,
+      "content": "Ciao",
+      "read": false,
+      "createdAt": "2026-07-20T13:34:25.803Z",
+      "id": 13
+    },
+    {
+      "conversationId": 4,
+      "userId": 5,
+      "content": "CIIIIIAAAAOOO",
+      "read": false,
+      "createdAt": "2026-07-20T13:36:03.499Z",
+      "id": 14
     }
   ]
 }
