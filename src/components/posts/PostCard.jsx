@@ -1,0 +1,116 @@
+import { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import Card from 'react-bootstrap/Card'
+import Dropdown from 'react-bootstrap/Dropdown'
+import { Link } from 'react-router-dom'
+import Avatar from '../common/Avatar'
+import PostForm from './PostForm'
+import CommentList from '../comments/CommentList'
+import { selectUserById } from '../../features/users/usersSlice'
+import { selectCurrentUser } from '../../features/auth/authSlice'
+import { updatePost, deletePost, toggleLike, selectLikesForPost } from '../../features/posts/postsSlice'
+import { selectCommentsForPost } from '../../features/comments/commentsSlice'
+import { formatRelativeTime } from '../../utils/dateFormat'
+
+export default function PostCard({ post }) {
+  const dispatch = useDispatch()
+  const author = useSelector(selectUserById(post.userId))
+  const currentUser = useSelector(selectCurrentUser)
+  const likes = useSelector(selectLikesForPost(post.id))
+  const comments = useSelector(selectCommentsForPost(post.id))
+  const [isEditing, setIsEditing] = useState(false)
+  const [showComments, setShowComments] = useState(false)
+
+  const isOwner = currentUser.id === post.userId
+  const isLiked = likes.some((like) => like.userId === currentUser.id)
+
+  const handleUpdate = (content) => {
+    dispatch(updatePost({ id: post.id, changes: { content, updatedAt: new Date().toISOString() } }))
+    setIsEditing(false)
+  }
+
+  const handleDelete = () => {
+    if (window.confirm('Eliminare definitivamente questo post?')) {
+      dispatch(deletePost(post.id))
+    }
+  }
+
+  const handleToggleLike = () => {
+    dispatch(toggleLike({ postId: post.id, userId: currentUser.id }))
+  }
+
+  return (
+    <Card className="mb-3 shadow-sm">
+      <Card.Body>
+        <div className="d-flex justify-content-between align-items-start mb-2">
+          <Link
+            to={`/profile/${post.userId}`}
+            className="d-flex align-items-center text-decoration-none text-dark"
+          >
+            <Avatar user={author} size={40} className="me-2" />
+            <div>
+              <div className="fw-semibold">{author?.fullName || 'Utente'}</div>
+              <div className="text-secondary" style={{ fontSize: '0.8rem' }}>
+                {formatRelativeTime(post.createdAt)}
+                {post.updatedAt !== post.createdAt && ' (modificato)'}
+              </div>
+            </div>
+          </Link>
+          {isOwner && (
+            <Dropdown align="end">
+              <Dropdown.Toggle
+                variant="link"
+                className="text-secondary p-0 no-caret"
+                id={`post-menu-${post.id}`}
+              >
+                <i className="bi bi-three-dots"></i>
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={() => setIsEditing(true)}>
+                  <i className="bi bi-pencil me-2"></i>Modifica
+                </Dropdown.Item>
+                <Dropdown.Item className="text-danger" onClick={handleDelete}>
+                  <i className="bi bi-trash me-2"></i>Elimina
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+          )}
+        </div>
+
+        {isEditing ? (
+          <PostForm
+            initialContent={post.content}
+            submitLabel="Salva"
+            onSubmit={handleUpdate}
+            onCancel={() => setIsEditing(false)}
+          />
+        ) : (
+          <Card.Text className="mb-3" style={{ whiteSpace: 'pre-wrap' }}>
+            {post.content}
+          </Card.Text>
+        )}
+
+        <div className="d-flex align-items-center gap-3 text-secondary">
+          <button
+            type="button"
+            className={`btn btn-sm ${isLiked ? 'btn-primary' : 'btn-outline-primary'}`}
+            onClick={handleToggleLike}
+          >
+            <i className={`bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'} me-1`}></i>
+            {likes.length}
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={() => setShowComments((prev) => !prev)}
+          >
+            <i className="bi bi-chat me-1"></i>
+            {comments.length > 0 ? comments.length : ''} Commenti
+          </button>
+        </div>
+
+        {showComments && <CommentList postId={post.id} />}
+      </Card.Body>
+    </Card>
+  )
+}
