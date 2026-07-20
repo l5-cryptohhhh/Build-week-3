@@ -33,7 +33,13 @@ export default function LoginPage() {
     <div className="d-flex justify-content-center align-items-center min-vh-100 bg-light px-3">
       <Card style={{ maxWidth: 420, width: '100%' }} className="shadow-sm">
         <Card.Body className="p-4">
-          <h1 className="h3 mb-4 text-center">Accedi</h1>
+          <h1 className="brand-logo text-center mb-1">
+            <span className="brand-in">in</span>
+            <span className="brand-clone">Clone</span>
+          </h1>
+          <p className="text-secondary text-center mb-4">
+            Accedi per continuare al tuo network professionale
+          </p>
           <ErrorAlert message={error} />
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3" controlId="loginEmail">
@@ -68,7 +74,7 @@ export default function LoginPage() {
             </Button>
           </Form>
           <p className="text-center mt-3 mb-0">
-            Non hai un account? <Link to="/register">Registrati</Link>
+            Non hai un account? <Link to="/register">Iscriviti ora</Link>
           </p>
         </Card.Body>
       </Card>

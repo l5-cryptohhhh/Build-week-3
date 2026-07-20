@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
+import Row from 'react-bootstrap/Row'
+import Col from 'react-bootstrap/Col'
 import ProfileCard from '../components/profile/ProfileCard'
 import ProfileEditForm from '../components/profile/ProfileEditForm'
 import PostCard from '../components/posts/PostCard'
@@ -85,34 +87,36 @@ export default function ProfilePage() {
   }
 
   return (
-    <div>
-      <ProfileCard
-        user={profileUser}
-        isOwnProfile={isOwnProfile}
-        onEdit={() => setShowEditForm(true)}
-        onMessage={handleMessage}
-      />
-
-      <h2 className="h5 mb-3">Post di {profileUser.fullName}</h2>
-      {postsStatus === 'loading' && posts.length === 0 && (
-        <LoadingSpinner label="Caricamento post..." />
-      )}
-      {postsStatus === 'succeeded' && posts.length === 0 && (
-        <EmptyState icon="bi-journal-text" title="Nessun post pubblicato" />
-      )}
-      {posts.map((post) => (
-        <PostCard key={post.id} post={post} />
-      ))}
-
-      {isOwnProfile && (
-        <ProfileEditForm
-          show={showEditForm}
+    <Row>
+      <Col lg={8} className="mx-auto">
+        <ProfileCard
           user={profileUser}
-          onClose={() => setShowEditForm(false)}
-          onSave={handleSaveProfile}
-          isSaving={isSaving}
+          isOwnProfile={isOwnProfile}
+          onEdit={() => setShowEditForm(true)}
+          onMessage={handleMessage}
         />
-      )}
-    </div>
+
+        <h2 className="h5 mb-3">Post di {profileUser.fullName}</h2>
+        {postsStatus === 'loading' && posts.length === 0 && (
+          <LoadingSpinner label="Caricamento post..." />
+        )}
+        {postsStatus === 'succeeded' && posts.length === 0 && (
+          <EmptyState icon="bi-journal-text" title="Nessun post pubblicato" />
+        )}
+        {posts.map((post) => (
+          <PostCard key={post.id} post={post} />
+        ))}
+
+        {isOwnProfile && (
+          <ProfileEditForm
+            show={showEditForm}
+            user={profileUser}
+            onClose={() => setShowEditForm(false)}
+            onSave={handleSaveProfile}
+            isSaving={isSaving}
+          />
+        )}
+      </Col>
+    </Row>
   )
 }

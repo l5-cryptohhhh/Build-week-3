@@ -5,9 +5,43 @@ body,
 }
 
 body {
-  background-color: #f4f6f8;
+  background-color: #f4f2ee;
 }
 
 .no-caret::after {
   display: none;
+}
+
+/* Brand logo (inClone) */
+.brand-logo {
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+}
+
+.brand-logo .brand-in {
+  color: var(--bs-primary);
+}
+
+.brand-logo .brand-clone {
+  color: #1d2226;
+}
+
+/* Deterministic gradient fallback avatars */
+.avatar-gradient-0 { background: linear-gradient(135deg, #2563eb, #1e3a8a); }
+.avatar-gradient-1 { background: linear-gradient(135deg, #d6336c, #6741d9); }
+.avatar-gradient-2 { background: linear-gradient(135deg, #f59f00, #e8590c); }
+.avatar-gradient-3 { background: linear-gradient(135deg, #12b886, #0b7285); }
+.avatar-gradient-4 { background: linear-gradient(135deg, #7048e8, #ae3ec9); }
+.avatar-gradient-5 { background: linear-gradient(135deg, #495057, #212529); }
+
+/* Feed layout: sticky side columns */
+.feed-sidebar {
+  position: sticky;
+  top: 5.5rem;
+}
+
+.profile-cover {
+  height: 80px;
+  background: linear-gradient(120deg, #2563eb, #1e3a8a);
 }

@@ -121,6 +121,18 @@ nel README.
 
 ## Changelog
 
+- **2026-07-20** — Restyling grafico ispirato a LinkedIn ("inClone"): rebranding
+  navbar/pagine auth, layout feed a 3 colonne (mini-profilo sticky + feed +
+  card "Novità"), avatar di fallback con gradiente deterministico al posto
+  del cerchio blu piatto, cover banner su profilo. Aggiunti campi minori
+  visti negli screenshot di riferimento senza toccare funzionalità
+  esistenti: `jobTitle` (titolo professionale, opzionale) su utente/
+  registrazione/modifica profilo/visualizzazione post, split Nome/Cognome
+  nel form di registrazione (uniti in `fullName` prima dell'invio, lo
+  schema utente resta invariato), e supporto immagine nei post (il campo
+  `imageUrl` esisteva già nello schema ma non era mai esposto in UI: ora
+  "Aggiungi immagine" in creazione/modifica post e rendering nella card).
+  Nessuna modifica a `server/db.json` (dati demo/runtime lasciati intatti).
 - **2026-07-20** — Implementazione completa Fase 2 (milestone M0-M9):
   scaffold adattato, backend mock (JSON Server + JSON Server Auth) con dati
   demo, store Redux (auth/posts/comments/users/messages), autenticazione
