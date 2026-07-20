@@ -216,16 +216,6 @@
       "postId": 5,
       "userId": 4,
       "id": 10
-    },
-    {
-      "postId": 8,
-      "userId": 4,
-      "id": 11
-    },
-    {
-      "postId": 8,
-      "userId": 1,
-      "id": 12
     }
   ],
   "conversations": [
