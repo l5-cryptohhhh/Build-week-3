@@ -1,0 +1,331 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "email": "mario.rossi@example.com",
+      "password": "$2a$10$s1kbF1pbWgeUrsZf9erO5.GTwnnqAgJEprQSyOJHbc5tbFoEIhZue",
+      "username": "marior",
+      "fullName": "Mario Rossi",
+      "avatarUrl": "",
+      "bio": "Sviluppatore full-stack, appassionato di running e caffe.",
+      "createdAt": "2026-06-01T08:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "email": "giulia.bianchi@example.com",
+      "password": "$2a$10$s1kbF1pbWgeUrsZf9erO5.GTwnnqAgJEprQSyOJHbc5tbFoEIhZue",
+      "username": "giuliab",
+      "fullName": "Giulia Bianchi",
+      "avatarUrl": "",
+      "bio": "UX designer, amante dei viaggi e della fotografia.",
+      "createdAt": "2026-06-03T10:30:00.000Z"
+    },
+    {
+      "id": 3,
+      "email": "luca.verdi@example.com",
+      "password": "$2a$10$s1kbF1pbWgeUrsZf9erO5.GTwnnqAgJEprQSyOJHbc5tbFoEIhZue",
+      "username": "lucav",
+      "fullName": "Luca Verdi",
+      "avatarUrl": "",
+      "bio": "Musicista nel tempo libero, di giorno data analyst.",
+      "createdAt": "2026-06-05T14:15:00.000Z"
+    },
+    {
+      "email": "lorenzo.melis@yahoo.it",
+      "password": "$2a$10$oPzZDlBybt8yfKw/RTDnD.b/E0LYQnuo59339d3AgtkHaXIfNdK3i",
+      "username": "lorenzo.melis",
+      "fullName": "Lorenzo Melis",
+      "avatarUrl": "https://images.pexels.com/photos/37880025/pexels-photo-37880025.jpeg",
+      "bio": "Provaaaa",
+      "createdAt": "2026-07-20T13:03:47.452Z",
+      "id": 4
+    }
+  ],
+  "posts": [
+    {
+      "id": 1,
+      "userId": 1,
+      "content": "Ho appena finito di leggere un libro fantastico su React e Redux, consigliatissimo!",
+      "imageUrl": "",
+      "createdAt": "2026-07-15T09:00:00.000Z",
+      "updatedAt": "2026-07-15T09:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "userId": 2,
+      "content": "Oggi ho fatto una passeggiata bellissima in montagna. La natura e la migliore fonte di ispirazione.",
+      "imageUrl": "",
+      "createdAt": "2026-07-16T11:20:00.000Z",
+      "updatedAt": "2026-07-16T11:20:00.000Z"
+    },
+    {
+      "id": 3,
+      "userId": 3,
+      "content": "Sto lavorando a un nuovo brano, non vedo l'ora di condividerlo con voi!",
+      "imageUrl": "",
+      "createdAt": "2026-07-16T18:45:00.000Z",
+      "updatedAt": "2026-07-16T18:45:00.000Z"
+    },
+    {
+      "id": 4,
+      "userId": 1,
+      "content": "Qualcuno ha consigli su come strutturare uno store Redux per un'app di medie dimensioni?",
+      "imageUrl": "",
+      "createdAt": "2026-07-17T08:10:00.000Z",
+      "updatedAt": "2026-07-17T08:10:00.000Z"
+    },
+    {
+      "id": 5,
+      "userId": 2,
+      "content": "Nuovo progetto di design completato oggi. Sono davvero soddisfatta del risultato finale.",
+      "imageUrl": "",
+      "createdAt": "2026-07-18T13:00:00.000Z",
+      "updatedAt": "2026-07-18T13:00:00.000Z"
+    },
+    {
+      "id": 6,
+      "userId": 3,
+      "content": "Weekend perfetto: un po' di musica, un po' di relax e tanta buona compagnia.",
+      "imageUrl": "",
+      "createdAt": "2026-07-19T20:30:00.000Z",
+      "updatedAt": "2026-07-19T20:30:00.000Z"
+    },
+    {
+      "id": 7,
+      "userId": 1,
+      "content": "Buongiorno a tutti! Oggi si parte con una nuova settimana di lavoro, carichi come sempre.",
+      "imageUrl": "",
+      "createdAt": "2026-07-20T07:45:00.000Z",
+      "updatedAt": "2026-07-20T07:45:00.000Z"
+    },
+    {
+      "userId": 4,
+      "content": "123",
+      "imageUrl": "",
+      "createdAt": "2026-07-20T13:15:10.317Z",
+      "updatedAt": "2026-07-20T13:15:10.317Z",
+      "id": 8
+    }
+  ],
+  "comments": [
+    {
+      "id": 1,
+      "postId": 1,
+      "userId": 2,
+      "content": "Anche a me e piaciuto tantissimo, l'ho letto il mese scorso!",
+      "createdAt": "2026-07-15T10:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "postId": 1,
+      "userId": 3,
+      "content": "Grazie per il consiglio, lo aggiungo alla mia lista di letture.",
+      "createdAt": "2026-07-15T12:30:00.000Z"
+    },
+    {
+      "id": 3,
+      "postId": 2,
+      "userId": 1,
+      "content": "Che invidia, io sono bloccato in ufficio tutto il giorno.",
+      "createdAt": "2026-07-16T12:00:00.000Z"
+    },
+    {
+      "id": 4,
+      "postId": 3,
+      "userId": 2,
+      "content": "Non vedo l'ora di ascoltarlo, in bocca al lupo!",
+      "createdAt": "2026-07-16T19:10:00.000Z"
+    },
+    {
+      "id": 5,
+      "postId": 4,
+      "userId": 3,
+      "content": "Io di solito divido lo store in slice per dominio, funziona bene.",
+      "createdAt": "2026-07-17T09:00:00.000Z"
+    },
+    {
+      "id": 6,
+      "postId": 5,
+      "userId": 1,
+      "content": "Complimenti, il design e davvero pulito!",
+      "createdAt": "2026-07-18T14:20:00.000Z"
+    },
+    {
+      "postId": 7,
+      "userId": 4,
+      "content": "cojone",
+      "createdAt": "2026-07-20T13:06:05.330Z",
+      "id": 7
+    }
+  ],
+  "likes": [
+    {
+      "id": 1,
+      "postId": 1,
+      "userId": 2
+    },
+    {
+      "id": 2,
+      "postId": 1,
+      "userId": 3
+    },
+    {
+      "id": 3,
+      "postId": 2,
+      "userId": 1
+    },
+    {
+      "id": 4,
+      "postId": 5,
+      "userId": 3
+    },
+    {
+      "id": 5,
+      "postId": 6,
+      "userId": 1
+    },
+    {
+      "id": 6,
+      "postId": 6,
+      "userId": 2
+    },
+    {
+      "postId": 7,
+      "userId": 4,
+      "id": 9
+    },
+    {
+      "postId": 5,
+      "userId": 4,
+      "id": 10
+    },
+    {
+      "postId": 8,
+      "userId": 4,
+      "id": 11
+    },
+    {
+      "postId": 8,
+      "userId": 1,
+      "id": 12
+    }
+  ],
+  "conversations": [
+    {
+      "id": 1,
+      "participant1Id": 1,
+      "participant2Id": 2,
+      "createdAt": "2026-07-10T09:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "participant1Id": 1,
+      "participant2Id": 3,
+      "createdAt": "2026-07-12T16:00:00.000Z"
+    },
+    {
+      "participant1Id": 4,
+      "participant2Id": 1,
+      "createdAt": "2026-07-20T13:06:44.171Z",
+      "id": 3
+    }
+  ],
+  "messages": [
+    {
+      "id": 1,
+      "conversationId": 1,
+      "userId": 1,
+      "content": "Ciao Giulia! Come va il nuovo progetto di design?",
+      "read": true,
+      "createdAt": "2026-07-10T09:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "conversationId": 1,
+      "userId": 2,
+      "content": "Ciao Mario! Sta andando alla grande, grazie per l'interesse.",
+      "read": true,
+      "createdAt": "2026-07-10T09:05:00.000Z"
+    },
+    {
+      "id": 3,
+      "conversationId": 1,
+      "userId": 1,
+      "content": "Fammi sapere se ti serve una mano con il frontend.",
+      "read": true,
+      "createdAt": "2026-07-10T09:07:00.000Z"
+    },
+    {
+      "id": 4,
+      "conversationId": 1,
+      "userId": 2,
+      "content": "Assolutamente, ti ricontatto appena ho qualcosa di pronto!",
+      "read": true,
+      "createdAt": "2026-07-18T15:00:00.000Z"
+    },
+    {
+      "id": 5,
+      "conversationId": 2,
+      "userId": 1,
+      "content": "Ehi Luca, hai finito il brano di cui parlavi?",
+      "read": true,
+      "createdAt": "2026-07-12T16:00:00.000Z"
+    },
+    {
+      "id": 6,
+      "conversationId": 2,
+      "userId": 3,
+      "content": "Quasi, manca solo il missaggio finale!",
+      "read": true,
+      "createdAt": "2026-07-12T16:10:00.000Z"
+    },
+    {
+      "id": 7,
+      "conversationId": 2,
+      "userId": 1,
+      "content": "Top, non vedo l'ora di ascoltarlo.",
+      "read": false,
+      "createdAt": "2026-07-19T21:00:00.000Z"
+    },
+    {
+      "conversationId": 3,
+      "userId": 4,
+      "content": "a scemooo",
+      "read": true,
+      "createdAt": "2026-07-20T13:06:48.348Z",
+      "id": 8
+    },
+    {
+      "conversationId": 3,
+      "userId": 4,
+      "content": "rispunn merda",
+      "read": true,
+      "createdAt": "2026-07-20T13:15:16.154Z",
+      "id": 9
+    },
+    {
+      "conversationId": 3,
+      "userId": 1,
+      "content": "t ammazzo",
+      "read": true,
+      "createdAt": "2026-07-20T13:16:28.062Z",
+      "id": 10
+    },
+    {
+      "conversationId": 3,
+      "userId": 1,
+      "content": "bah",
+      "read": true,
+      "createdAt": "2026-07-20T13:18:12.115Z",
+      "id": 11
+    },
+    {
+      "conversationId": 3,
+      "userId": 1,
+      "content": "ciao",
+      "read": true,
+      "createdAt": "2026-07-20T13:18:23.838Z",
+      "id": 12
+    }
+  ]
+}
