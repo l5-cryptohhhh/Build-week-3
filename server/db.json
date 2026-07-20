@@ -42,12 +42,22 @@
     },
     {
       "email": "marcocozma97@gmail.com",
+<<<<<<< HEAD
       "password": "$2a$10$vdY4GmS51SzIK/Ro8sxhruGZQJIDBUdF4Nj1W0dNb8dLYNWyqX2F.",
       "username": "mark97",
       "fullName": "Marco Cozma",
       "avatarUrl": "https://images.pexels.com/photos/13036108/pexels-photo-13036108.jpeg",
       "bio": "PROMPT AI FULL-STACK",
       "createdAt": "2026-07-20T13:33:53.164Z",
+=======
+      "password": "$2a$10$trLKrj8SlQKD61TIUm2k3uLSaYIkeA.EJTXWY8ZOGzYHMzm0vao6S",
+      "username": "mark97",
+      "fullName": "Marco Cozma",
+      "jobTitle": "Prompt Engineering",
+      "avatarUrl": "https://images.pexels.com/photos/13036108/pexels-photo-13036108.jpeg",
+      "bio": "",
+      "createdAt": "2026-07-20T14:29:31.665Z",
+>>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
       "id": 5
     }
   ],
@@ -117,12 +127,44 @@
       "id": 8
     },
     {
-      "userId": 5,
-      "content": "Siamo dei treni!!!",
-      "imageUrl": "",
-      "createdAt": "2026-07-20T13:34:12.523Z",
-      "updatedAt": "2026-07-20T13:35:55.722Z",
+      "userId": 1,
+      "content": "Post di prova con immagine (smoke test restyle)",
+      "imageUrl": "https://picsum.photos/600/300",
+      "createdAt": "2026-07-20T14:17:36.018Z",
+      "updatedAt": "2026-07-20T14:17:36.018Z",
       "id": 9
+    },
+    {
+      "userId": 1,
+      "content": "Post di prova con immagine (smoke test restyle)",
+      "imageUrl": "https://picsum.photos/600/300",
+      "createdAt": "2026-07-20T14:18:57.665Z",
+      "updatedAt": "2026-07-20T14:18:58.747Z",
+      "id": 10
+    },
+    {
+      "userId": 5,
+      "content": "Ciao mondo",
+      "imageUrl": "",
+      "createdAt": "2026-07-20T14:30:07.664Z",
+      "updatedAt": "2026-07-20T14:30:07.664Z",
+      "id": 11
+    },
+    {
+      "userId": 5,
+      "content": "Video naruto",
+      "imageUrl": "https://www.youtube.com/watch?v=p7bV30H2Soc",
+      "createdAt": "2026-07-20T14:32:59.296Z",
+      "updatedAt": "2026-07-20T14:33:17.376Z",
+      "id": 12
+    },
+    {
+      "userId": 5,
+      "content": "Buongiornissimo!",
+      "imageUrl": "https://www.publicdomainpictures.net/pictures/20000/velka/cracked-earth-texture.jpg",
+      "createdAt": "2026-07-20T14:33:53.176Z",
+      "updatedAt": "2026-07-20T14:33:53.176Z",
+      "id": 13
     }
   ],
   "comments": [
@@ -178,9 +220,9 @@
     {
       "postId": 8,
       "userId": 5,
-      "content": "4 5 6",
-      "createdAt": "2026-07-20T13:34:01.596Z",
-      "id": 8
+      "content": "retttrt",
+      "createdAt": "2026-07-20T14:35:35.975Z",
+      "id": 11
     }
   ],
   "likes": [
@@ -235,6 +277,7 @@
       "id": 12
     },
     {
+<<<<<<< HEAD
       "postId": 8,
       "userId": 5,
       "id": 13
@@ -243,6 +286,26 @@
       "postId": 6,
       "userId": 5,
       "id": 14
+=======
+      "postId": 9,
+      "userId": 1,
+      "id": 13
+    },
+    {
+      "postId": 10,
+      "userId": 1,
+      "id": 14
+    },
+    {
+      "postId": 8,
+      "userId": 5,
+      "id": 15
+    },
+    {
+      "postId": 10,
+      "userId": 5,
+      "id": 16
+>>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
     }
   ],
   "conversations": [
@@ -383,6 +446,14 @@
       "read": false,
       "createdAt": "2026-07-20T13:36:03.499Z",
       "id": 14
+    },
+    {
+      "conversationId": 4,
+      "userId": 5,
+      "content": "Ciao",
+      "read": false,
+      "createdAt": "2026-07-20T14:30:36.632Z",
+      "id": 15
     }
   ]
 }

@@ -128,6 +128,7 @@ nel README.
 
 ## Changelog
 
+<<<<<<< HEAD
 - **2026-07-21** — Upload reale immagine profilo: `ProfileEditForm` sostituisce
   il campo URL testuale con `<input type="file">` (accetta immagini, max
   2MB) codificato in base64 e salvato come `avatarUrl` in `db.json`. Nel
@@ -159,6 +160,8 @@ nel README.
   di body e con un test di guardia (owner diverso -> 403 confermato
   invariato). `npm run server` / `npm run dev:all` restano gli stessi
   comandi, solo l'implementazione dietro `npm run server` e' cambiata.
+=======
+>>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
 - **2026-07-20** — Restyling grafico ispirato a LinkedIn ("inClone"): rebranding
   navbar/pagine auth, layout feed a 3 colonne (mini-profilo sticky + feed +
   card "Novità"), avatar di fallback con gradiente deterministico al posto

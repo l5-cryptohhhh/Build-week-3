@@ -99,7 +99,13 @@ export default function PostCard({ post }) {
             <Card.Text className="mb-3" style={{ whiteSpace: 'pre-wrap' }}>
               {post.content}
             </Card.Text>
+<<<<<<< HEAD
             {post.imageUrl && <PostLinkPreview url={post.imageUrl} />}
+=======
+            {post.imageUrl && (
+              <img src={post.imageUrl} alt="" className="img-fluid rounded mb-3 w-100" />
+            )}
+>>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
           </>
         )}
 

@@ -19,6 +19,7 @@ export default function PostForm({
   showImageField = false,
 }) {
   const [content, setContent] = useState(initialContent)
+<<<<<<< HEAD
   const [linkUrl, setLinkUrl] = useState(isDataUrl(initialImageUrl) ? '' : initialImageUrl)
   const [uploadedMedia, setUploadedMedia] = useState(() =>
     isDataUrl(initialImageUrl)
@@ -28,11 +29,16 @@ export default function PostForm({
   const [fileError, setFileError] = useState(null)
   const photoInputRef = useRef(null)
   const videoInputRef = useRef(null)
+=======
+  const [imageUrl, setImageUrl] = useState(initialImageUrl)
+  const [showImageInput, setShowImageInput] = useState(Boolean(initialImageUrl))
+>>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
 
   const handleSubmit = (event) => {
     event.preventDefault()
     const trimmed = content.trim()
     if (!trimmed) return
+<<<<<<< HEAD
     onSubmit({ content: trimmed, imageUrl: uploadedMedia ? uploadedMedia.url : linkUrl.trim() })
     if (!initialContent) {
       setContent('')
@@ -63,6 +69,14 @@ export default function PostForm({
     const file = event.target.files[0]
     event.target.value = ''
     if (file) readFileAsMedia(file, MAX_VIDEO_BYTES, 'i video', 'video')
+=======
+    onSubmit({ content: trimmed, imageUrl: imageUrl.trim() })
+    if (!initialContent) {
+      setContent('')
+      setImageUrl('')
+      setShowImageInput(false)
+    }
+>>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
   }
 
   return (
@@ -77,6 +91,7 @@ export default function PostForm({
           required
         />
       </Form.Group>
+<<<<<<< HEAD
 
       {showImageField && (
         <>
@@ -160,11 +175,41 @@ export default function PostForm({
         {onCancel && (
           <Button variant="outline-secondary" type="button" onClick={onCancel}>
             Annulla
+=======
+      {showImageInput && (
+        <Form.Group className="mb-2" controlId="postImageUrl">
+          <Form.Control
+            type="text"
+            placeholder="URL immagine (https://...)"
+            value={imageUrl}
+            onChange={(event) => setImageUrl(event.target.value)}
+          />
+        </Form.Group>
+      )}
+      <div className="d-flex justify-content-between align-items-center gap-2">
+        {showImageField ? (
+          <Button
+            variant="outline-secondary"
+            type="button"
+            size="sm"
+            onClick={() => setShowImageInput((prev) => !prev)}
+          >
+            <i className="bi bi-image me-1"></i>Aggiungi immagine
+>>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
           </Button>
+        ) : (
+          <span />
         )}
-        <Button variant="primary" type="submit" disabled={isSubmitting || !content.trim()}>
-          {submitLabel}
-        </Button>
+        <div className="d-flex gap-2">
+          {onCancel && (
+            <Button variant="outline-secondary" type="button" onClick={onCancel}>
+              Annulla
+            </Button>
+          )}
+          <Button variant="primary" type="submit" disabled={isSubmitting || !content.trim()}>
+            {submitLabel}
+          </Button>
+        </div>
       </div>
     </Form>
   )
