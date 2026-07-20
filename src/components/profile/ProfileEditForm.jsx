@@ -8,6 +8,7 @@ export default function ProfileEditForm({ show, user, onClose, onSave, isSaving 
   const [form, setForm] = useState({
     fullName: user.fullName,
     username: user.username,
+    jobTitle: user.jobTitle || '',
     bio: user.bio || '',
     avatarUrl: user.avatarUrl || '',
   })
@@ -47,6 +48,15 @@ export default function ProfileEditForm({ show, user, onClose, onSave, isSaving 
           <Form.Group className="mb-3" controlId="editUsername">
             <Form.Label>Username</Form.Label>
             <Form.Control name="username" value={form.username} onChange={handleChange} required />
+          </Form.Group>
+          <Form.Group className="mb-3" controlId="editJobTitle">
+            <Form.Label>Titolo professionale</Form.Label>
+            <Form.Control
+              name="jobTitle"
+              value={form.jobTitle}
+              onChange={handleChange}
+              placeholder="es. Front-End Developer presso EPICODE"
+            />
           </Form.Group>
           <Form.Group className="mb-3" controlId="editBio">
             <Form.Label>Bio</Form.Label>

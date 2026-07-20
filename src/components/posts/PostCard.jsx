@@ -24,8 +24,10 @@ export default function PostCard({ post }) {
   const isOwner = currentUser.id === post.userId
   const isLiked = likes.some((like) => like.userId === currentUser.id)
 
-  const handleUpdate = (content) => {
-    dispatch(updatePost({ id: post.id, changes: { content, updatedAt: new Date().toISOString() } }))
+  const handleUpdate = ({ content, imageUrl }) => {
+    dispatch(
+      updatePost({ id: post.id, changes: { content, imageUrl, updatedAt: new Date().toISOString() } }),
+    )
     setIsEditing(false)
   }
 
@@ -50,6 +52,11 @@ export default function PostCard({ post }) {
             <Avatar user={author} size={40} className="me-2" />
             <div>
               <div className="fw-semibold">{author?.fullName || 'Utente'}</div>
+              {author?.jobTitle && (
+                <div className="text-secondary" style={{ fontSize: '0.8rem' }}>
+                  {author.jobTitle}
+                </div>
+              )}
               <div className="text-secondary" style={{ fontSize: '0.8rem' }}>
                 {formatRelativeTime(post.createdAt)}
                 {post.updatedAt !== post.createdAt && ' (modificato)'}
@@ -80,14 +87,21 @@ export default function PostCard({ post }) {
         {isEditing ? (
           <PostForm
             initialContent={post.content}
+            initialImageUrl={post.imageUrl}
             submitLabel="Salva"
             onSubmit={handleUpdate}
             onCancel={() => setIsEditing(false)}
+            showImageField
           />
         ) : (
-          <Card.Text className="mb-3" style={{ whiteSpace: 'pre-wrap' }}>
-            {post.content}
-          </Card.Text>
+          <>
+            <Card.Text className="mb-3" style={{ whiteSpace: 'pre-wrap' }}>
+              {post.content}
+            </Card.Text>
+            {post.imageUrl && (
+              <img src={post.imageUrl} alt="" className="img-fluid rounded mb-3 w-100" />
+            )}
+          </>
         )}
 
         <div className="d-flex align-items-center gap-3 text-secondary">

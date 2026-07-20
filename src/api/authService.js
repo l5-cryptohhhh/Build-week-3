@@ -25,12 +25,13 @@ async function resolveUser(data) {
   return user
 }
 
-export async function register({ email, password, username, fullName }) {
+export async function register({ email, password, username, fullName, jobTitle = '' }) {
   const { data } = await httpClient.post('/register', {
     email,
     password,
     username,
     fullName,
+    jobTitle,
     avatarUrl: '',
     bio: '',
     createdAt: new Date().toISOString(),

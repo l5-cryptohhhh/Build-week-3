@@ -8,7 +8,15 @@ import { registerUser, selectAuthStatus, selectAuthError } from '../features/aut
 import ErrorAlert from '../components/common/ErrorAlert'
 import { isValidEmail, isValidPassword, isValidUsername } from '../utils/validators'
 
-const initialForm = { fullName: '', username: '', email: '', password: '', confirmPassword: '' }
+const initialForm = {
+  nome: '',
+  cognome: '',
+  username: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+  jobTitle: '',
+}
 
 export default function RegisterPage() {
   const dispatch = useDispatch()
@@ -24,7 +32,8 @@ export default function RegisterPage() {
   }
 
   const validate = () => {
-    if (!form.fullName.trim()) return 'Il nome completo e obbligatorio.'
+    if (!form.nome.trim()) return 'Il nome e obbligatorio.'
+    if (!form.cognome.trim()) return 'Il cognome e obbligatorio.'
     if (!isValidUsername(form.username)) {
       return 'Lo username deve avere 3-20 caratteri (lettere, numeri, "_" o ".").'
     }
@@ -42,7 +51,8 @@ export default function RegisterPage() {
       return
     }
     setFormError(null)
-    const { confirmPassword: _confirmPassword, ...payload } = form
+    const { nome, cognome, confirmPassword: _confirmPassword, ...rest } = form
+    const payload = { ...rest, fullName: `${nome.trim()} ${cognome.trim()}`.trim() }
     const result = await dispatch(registerUser(payload))
     if (registerUser.fulfilled.match(result)) {
       navigate('/', { replace: true })
@@ -53,13 +63,25 @@ export default function RegisterPage() {
     <div className="d-flex justify-content-center align-items-center min-vh-100 bg-light px-3 py-4">
       <Card style={{ maxWidth: 460, width: '100%' }} className="shadow-sm">
         <Card.Body className="p-4">
-          <h1 className="h3 mb-4 text-center">Crea un account</h1>
+          <h1 className="brand-logo text-center mb-1">
+            <span className="brand-in">in</span>
+            <span className="brand-clone">Clone</span>
+          </h1>
+          <p className="text-secondary text-center mb-4">
+            Crea il tuo account: sono necessari solo pochi secondi
+          </p>
           <ErrorAlert message={formError || error} />
           <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3" controlId="registerFullName">
-              <Form.Label>Nome completo</Form.Label>
-              <Form.Control name="fullName" value={form.fullName} onChange={handleChange} required />
-            </Form.Group>
+            <div className="row">
+              <Form.Group className="mb-3 col-sm-6" controlId="registerNome">
+                <Form.Label>Nome</Form.Label>
+                <Form.Control name="nome" value={form.nome} onChange={handleChange} required />
+              </Form.Group>
+              <Form.Group className="mb-3 col-sm-6" controlId="registerCognome">
+                <Form.Label>Cognome</Form.Label>
+                <Form.Control name="cognome" value={form.cognome} onChange={handleChange} required />
+              </Form.Group>
+            </div>
             <Form.Group className="mb-3" controlId="registerUsername">
               <Form.Label>Username</Form.Label>
               <Form.Control name="username" value={form.username} onChange={handleChange} required />
@@ -94,13 +116,22 @@ export default function RegisterPage() {
                 required
               />
             </Form.Group>
+            <Form.Group className="mb-4" controlId="registerJobTitle">
+              <Form.Label>Titolo professionale (facoltativo)</Form.Label>
+              <Form.Control
+                name="jobTitle"
+                value={form.jobTitle}
+                onChange={handleChange}
+                placeholder="es. Studente Front-End presso EPICODE"
+              />
+            </Form.Group>
             <Button
               type="submit"
               variant="primary"
               className="w-100"
               disabled={status === 'loading'}
             >
-              {status === 'loading' ? 'Creazione account...' : 'Registrati'}
+              {status === 'loading' ? 'Creazione account...' : 'Iscriviti'}
             </Button>
           </Form>
           <p className="text-center mt-3 mb-0">

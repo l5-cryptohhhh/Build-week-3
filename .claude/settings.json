@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(timeout 30 bash -c 'until curl -sf http://localhost:5173 >/dev/null; do sleep 1; done')",
+      "Bash(timeout 30 bash -c 'until curl -sf http://localhost:3001/users >/dev/null; do sleep 1; done')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3001/users)",
+      "Bash(curl -s http://localhost:3001/posts)",
+      "Bash(curl -s -X POST http://localhost:3001/login -H \"Content-Type: application/json\" -d '{\"email\":\"mario.rossi@example.com\",\"password\":\"Password123!\"}')",
+      "Bash(npx --yes playwright --version)",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(node shot.mjs)",
+      "Bash(npx playwright *)",
+      "Bash(node shot2.mjs)",
+      "Bash(node shot3.mjs)",
+      "Bash(node cleanup.mjs)"
+    ]
+  }
+}

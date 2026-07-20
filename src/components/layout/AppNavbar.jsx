@@ -4,7 +4,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import Container from 'react-bootstrap/Container'
 import Navbar from 'react-bootstrap/Navbar'
 import Nav from 'react-bootstrap/Nav'
-import NavDropdown from 'react-bootstrap/NavDropdown'
+import Button from 'react-bootstrap/Button'
 import { logout, selectCurrentUser } from '../../features/auth/authSlice'
 import Avatar from '../common/Avatar'
 
@@ -31,43 +31,35 @@ export default function AppNavbar() {
       onToggle={setExpanded}
     >
       <Container>
-        <Navbar.Brand as={Link} to="/" onClick={() => setExpanded(false)} className="fw-bold">
-          <i className="bi bi-chat-square-heart-fill text-primary me-2"></i>
-          SocialApp
+        <Navbar.Brand as={Link} to="/" onClick={() => setExpanded(false)} className="brand-logo">
+          <span className="brand-in">in</span>
+          <span className="brand-clone">Clone</span>
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="main-navbar" />
         <Navbar.Collapse id="main-navbar">
           <Nav className="me-auto">
             <Nav.Link as={NavLink} to="/" end onClick={() => setExpanded(false)}>
-              <i className="bi bi-house-door me-1"></i>Feed
+              Home
+            </Nav.Link>
+            <Nav.Link as={NavLink} to={`/profile/${user.id}`} onClick={() => setExpanded(false)}>
+              Il mio profilo
             </Nav.Link>
             <Nav.Link as={NavLink} to="/messages" onClick={() => setExpanded(false)}>
               <i className="bi bi-chat-dots me-1"></i>Messaggi
             </Nav.Link>
           </Nav>
-          <Nav>
-            <NavDropdown
-              align="end"
-              title={
-                <span className="d-inline-flex align-items-center">
-                  <Avatar user={user} size={32} className="me-2" />
-                  {user.fullName}
-                </span>
-              }
-              id="user-menu"
+          <Nav className="align-items-md-center gap-2">
+            <Link
+              to={`/profile/${user.id}`}
+              onClick={() => setExpanded(false)}
+              className="d-inline-flex align-items-center text-decoration-none text-dark py-2"
             >
-              <NavDropdown.Item
-                as={Link}
-                to={`/profile/${user.id}`}
-                onClick={() => setExpanded(false)}
-              >
-                <i className="bi bi-person me-2"></i>Il mio profilo
-              </NavDropdown.Item>
-              <NavDropdown.Divider />
-              <NavDropdown.Item onClick={handleLogout}>
-                <i className="bi bi-box-arrow-right me-2"></i>Esci
-              </NavDropdown.Item>
-            </NavDropdown>
+              <Avatar user={user} size={32} className="me-2" />
+              {user.fullName}
+            </Link>
+            <Button variant="outline-secondary" size="sm" onClick={handleLogout}>
+              Logout
+            </Button>
           </Nav>
         </Navbar.Collapse>
       </Container>

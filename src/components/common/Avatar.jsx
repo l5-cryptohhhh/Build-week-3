@@ -1,3 +1,5 @@
+const GRADIENT_COUNT = 6
+
 function getInitials(fullName = '') {
   return fullName
     .trim()
@@ -5,6 +7,14 @@ function getInitials(fullName = '') {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join('')
+}
+
+function getGradientClass(user) {
+  const seed = user?.id ?? user?.fullName ?? ''
+  const hash = String(seed)
+    .split('')
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  return `avatar-gradient-${hash % GRADIENT_COUNT}`
 }
 
 export default function Avatar({ user, size = 40, className = '' }) {
@@ -23,7 +33,7 @@ export default function Avatar({ user, size = 40, className = '' }) {
 
   return (
     <span
-      className={`rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-semibold ${className}`}
+      className={`rounded-circle text-white d-inline-flex align-items-center justify-content-center fw-semibold ${getGradientClass(user)} ${className}`}
       style={style}
     >
       {getInitials(user?.fullName) || '?'}
