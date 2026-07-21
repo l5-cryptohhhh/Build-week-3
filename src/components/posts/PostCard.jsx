@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import Card from 'react-bootstrap/Card'
 import Dropdown from 'react-bootstrap/Dropdown'
+import Modal from 'react-bootstrap/Modal'
 import { Link } from 'react-router-dom'
 import Avatar from '../common/Avatar'
+import UserHoverCard from '../common/UserHoverCard'
 import PostForm from './PostForm'
 import CommentList from '../comments/CommentList'
 import { selectUserById } from '../../features/users/usersSlice'
@@ -12,6 +14,7 @@ import { updatePost, deletePost, toggleLike, selectLikesForPost } from '../../fe
 import { selectCommentsForPost } from '../../features/comments/commentsSlice'
 import { formatRelativeTime } from '../../utils/dateFormat'
 import { getLinkType, getYoutubeEmbedUrl } from '../../utils/linkPreview'
+import { requestConfirm } from '../../utils/confirm'
 
 export default function PostCard({ post }) {
   const dispatch = useDispatch()
@@ -21,6 +24,7 @@ export default function PostCard({ post }) {
   const comments = useSelector(selectCommentsForPost(post.id))
   const [isEditing, setIsEditing] = useState(false)
   const [showComments, setShowComments] = useState(false)
+  const [isPopping, setIsPopping] = useState(false)
 
   const isOwner = currentUser.id === post.userId
   const isLiked = likes.some((like) => like.userId === currentUser.id)
@@ -32,38 +36,45 @@ export default function PostCard({ post }) {
     setIsEditing(false)
   }
 
-  const handleDelete = () => {
-    if (window.confirm('Eliminare definitivamente questo post?')) {
-      dispatch(deletePost(post.id))
-    }
+  const handleDelete = async () => {
+    const confirmed = await requestConfirm({
+      title: 'Eliminare il post',
+      message: 'Eliminare definitivamente questo post? L’azione non è reversibile.',
+      confirmLabel: 'Elimina',
+    })
+    if (confirmed) dispatch(deletePost(post.id))
   }
 
   const handleToggleLike = () => {
     dispatch(toggleLike({ postId: post.id, userId: currentUser.id }))
+    setIsPopping(true)
+    setTimeout(() => setIsPopping(false), 300)
   }
 
   return (
-    <Card className="mb-3 shadow-sm">
+    <Card className="mb-3 shadow-sm animate-fade-in">
       <Card.Body>
         <div className="d-flex justify-content-between align-items-start mb-2">
-          <Link
-            to={`/profile/${post.userId}`}
-            className="d-flex align-items-center text-decoration-none text-dark"
-          >
-            <Avatar user={author} size={40} className="me-2" />
-            <div>
-              <div className="fw-semibold">{author?.fullName || 'Utente'}</div>
-              {author?.jobTitle && (
+          <UserHoverCard user={author}>
+            <Link
+              to={`/profile/${post.userId}`}
+              className="d-flex align-items-center text-decoration-none text-dark"
+            >
+              <Avatar user={author} size={40} className="me-2" />
+              <div>
+                <div className="fw-semibold">{author?.fullName || 'Utente'}</div>
+                {author?.jobTitle && (
+                  <div className="text-secondary" style={{ fontSize: '0.8rem' }}>
+                    {author.jobTitle}
+                  </div>
+                )}
                 <div className="text-secondary" style={{ fontSize: '0.8rem' }}>
-                  {author.jobTitle}
+                  {formatRelativeTime(post.createdAt)}
+                  {post.updatedAt !== post.createdAt && ' (modificato)'}
                 </div>
-              )}
-              <div className="text-secondary" style={{ fontSize: '0.8rem' }}>
-                {formatRelativeTime(post.createdAt)}
-                {post.updatedAt !== post.createdAt && ' (modificato)'}
               </div>
-            </div>
-          </Link>
+            </Link>
+          </UserHoverCard>
           {isOwner && (
             <Dropdown align="end">
               <Dropdown.Toggle
@@ -109,7 +120,9 @@ export default function PostCard({ post }) {
             className={`btn btn-sm ${isLiked ? 'btn-primary' : 'btn-outline-primary'}`}
             onClick={handleToggleLike}
           >
-            <i className={`bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'} me-1`}></i>
+            <i
+              className={`bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'} me-1 ${isPopping ? 'like-pop' : ''}`}
+            ></i>
             {likes.length}
           </button>
           <button
@@ -130,9 +143,34 @@ export default function PostCard({ post }) {
 
 function PostLinkPreview({ url }) {
   const type = getLinkType(url)
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [showLightbox, setShowLightbox] = useState(false)
 
   if (type === 'image') {
-    return <img src={url} alt="" className="img-fluid rounded mb-3 w-100" />
+    return (
+      <>
+        <img
+          src={url}
+          alt=""
+          role="button"
+          onLoad={() => setIsLoaded(true)}
+          onClick={() => setShowLightbox(true)}
+          className={`img-fluid rounded mb-3 w-100 fade-img ${isLoaded ? 'fade-img-loaded' : ''}`}
+          style={{ cursor: 'zoom-in' }}
+        />
+        <Modal show={showLightbox} onHide={() => setShowLightbox(false)} centered size="lg">
+          <Modal.Body className="p-0 text-center bg-dark">
+            <img
+              src={url}
+              alt=""
+              className="w-100"
+              style={{ maxHeight: '85vh', objectFit: 'contain', cursor: 'zoom-out' }}
+              onClick={() => setShowLightbox(false)}
+            />
+          </Modal.Body>
+        </Modal>
+      </>
+    )
   }
 
   if (type === 'video') {

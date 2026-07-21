@@ -12,9 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Local dev database (runtime state, seeded from server/db.seed.json)
-server/db.json
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

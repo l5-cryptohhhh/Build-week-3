@@ -1,13 +1,26 @@
 import { useEffect } from 'react'
-import { Provider, useDispatch } from 'react-redux'
+import { Provider, useDispatch, useSelector } from 'react-redux'
 import { BrowserRouter, useNavigate } from 'react-router-dom'
 import { store } from './app/store'
-import { restoreSession, logout } from './features/auth/authSlice'
+import { restoreSession, logout, selectCurrentUser, selectAuthToken } from './features/auth/authSlice'
+import { fetchNotifications } from './features/notifications/notificationsSlice'
+import { fetchConversations, fetchUnreadCounts } from './features/messages/messagesSlice'
+import { connectSocket, disconnectSocket } from './socket'
+import usePresenceSocket from './hooks/usePresenceSocket'
+import useConversationSocket from './hooks/useConversationSocket'
 import AppRouter from './routes/AppRouter'
+import ToastHost from './components/common/ToastHost'
+import ConfirmModalHost from './components/common/ConfirmModalHost'
+import TopLoadingBar from './components/common/TopLoadingBar'
 
 function SessionBootstrap() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const currentUser = useSelector(selectCurrentUser)
+  const token = useSelector(selectAuthToken)
+
+  usePresenceSocket()
+  useConversationSocket()
 
   useEffect(() => {
     dispatch(restoreSession())
@@ -23,7 +36,26 @@ function SessionBootstrap() {
     return () => window.removeEventListener('auth:expired', handleExpired)
   }, [dispatch, navigate])
 
-  return <AppRouter />
+  useEffect(() => {
+    if (currentUser && token) {
+      connectSocket(token)
+      dispatch(fetchNotifications(currentUser.id))
+      dispatch(fetchConversations(currentUser.id)).then(() => {
+        dispatch(fetchUnreadCounts(currentUser.id))
+      })
+    } else {
+      disconnectSocket()
+    }
+  }, [dispatch, currentUser, token])
+
+  return (
+    <>
+      <TopLoadingBar />
+      <AppRouter />
+      <ToastHost />
+      <ConfirmModalHost />
+    </>
+  )
 }
 
 function App() {

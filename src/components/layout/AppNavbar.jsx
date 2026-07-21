@@ -5,14 +5,20 @@ import Container from 'react-bootstrap/Container'
 import Navbar from 'react-bootstrap/Navbar'
 import Nav from 'react-bootstrap/Nav'
 import Button from 'react-bootstrap/Button'
+import Badge from 'react-bootstrap/Badge'
 import { logout, selectCurrentUser } from '../../features/auth/authSlice'
+import { selectTotalUnreadMessages } from '../../features/messages/messagesSlice'
 import Avatar from '../common/Avatar'
+import NotificationBell from '../notifications/NotificationBell'
+import useTheme from '../../hooks/useTheme'
 
 export default function AppNavbar() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const user = useSelector(selectCurrentUser)
+  const unreadMessages = useSelector(selectTotalUnreadMessages)
   const [expanded, setExpanded] = useState(false)
+  const [theme, toggleTheme] = useTheme()
 
   const handleLogout = () => {
     dispatch(logout())
@@ -23,7 +29,7 @@ export default function AppNavbar() {
 
   return (
     <Navbar
-      bg="white"
+      bg="body"
       expand="md"
       fixed="top"
       className="border-bottom shadow-sm"
@@ -44,11 +50,34 @@ export default function AppNavbar() {
             <Nav.Link as={NavLink} to={`/profile/${user.id}`} onClick={() => setExpanded(false)}>
               Il mio profilo
             </Nav.Link>
-            <Nav.Link as={NavLink} to="/messages" onClick={() => setExpanded(false)}>
+            <Nav.Link
+              as={NavLink}
+              to="/messages"
+              onClick={() => setExpanded(false)}
+              className="position-relative"
+            >
               <i className="bi bi-chat-dots me-1"></i>Messaggi
+              {unreadMessages > 0 && (
+                <Badge bg="danger" pill className="ms-1" style={{ fontSize: '0.6rem' }}>
+                  {unreadMessages}
+                </Badge>
+              )}
+            </Nav.Link>
+            <Nav.Link as={NavLink} to="/search" onClick={() => setExpanded(false)}>
+              <i className="bi bi-search me-1"></i>Cerca
             </Nav.Link>
           </Nav>
-          <Nav className="align-items-md-center gap-2">
+          <Nav className="align-items-md-center gap-3">
+            <button
+              type="button"
+              className="btn btn-sm btn-link text-secondary p-0"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Attiva tema chiaro' : 'Attiva tema scuro'}
+              title={theme === 'dark' ? 'Attiva tema chiaro' : 'Attiva tema scuro'}
+            >
+              <i className={`bi ${theme === 'dark' ? 'bi-sun' : 'bi-moon-stars'} fs-5`}></i>
+            </button>
+            <NotificationBell />
             <Link
               to={`/profile/${user.id}`}
               onClick={() => setExpanded(false)}

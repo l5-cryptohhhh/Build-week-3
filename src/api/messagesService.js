@@ -17,21 +17,14 @@ export async function createConversation({ participant1Id, participant2Id }) {
   return data
 }
 
-export async function fetchMessages(conversationId) {
-  const { data } = await httpClient.get('/messages', {
-    params: { conversationId, _sort: 'createdAt', _order: 'asc' },
+export async function fetchMessages(conversationId, { page = 1, limit = 20 } = {}) {
+  // Pagina 1 = messaggi piu' recenti (ordine desc lato server); si inverte
+  // qui per restituire sempre l'ordine cronologico asc atteso dalla UI.
+  // Le pagine successive ("carica precedenti") vanno anteposte dal chiamante.
+  const { data, headers } = await httpClient.get('/messages', {
+    params: { conversationId, _sort: 'createdAt', _order: 'desc', _page: page, _limit: limit },
   })
-  return data
-}
-
-export async function fetchUnreadMessages(conversationIds, userId) {
-  if (!conversationIds.length) return []
-  const params = new URLSearchParams()
-  conversationIds.forEach((id) => params.append('conversationId', id))
-  params.append('read', 'false')
-  params.append('userId_ne', userId)
-  const { data } = await httpClient.get(`/messages?${params.toString()}`)
-  return data
+  return { messages: data.reverse(), totalCount: Number(headers['x-total-count'] ?? data.length) }
 }
 
 export async function sendMessage(message) {
@@ -42,6 +35,13 @@ export async function sendMessage(message) {
 export async function markMessageRead(id) {
   const { data } = await httpClient.patch(`/messages/${id}`, { read: true })
   return data
+}
+
+export async function fetchUnreadCount(conversationId, userId) {
+  const { data } = await httpClient.get('/messages', {
+    params: { conversationId, read: false },
+  })
+  return data.filter((message) => message.userId !== userId).length
 }
 
 export async function updateMessage(id, changes) {

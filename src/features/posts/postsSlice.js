@@ -1,11 +1,25 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import * as postsService from '../../api/postsService'
+import { searchPosts } from '../search/searchSlice'
 
 export const fetchPosts = createAsyncThunk(
   'posts/fetchPosts',
   async ({ page = 1, limit = 5 } = {}, { rejectWithValue }) => {
     try {
       const { posts, totalCount } = await postsService.fetchPosts({ page, limit })
+      const likes = await postsService.fetchLikesForPosts(posts.map((post) => post.id))
+      return { posts, totalCount, likes, page }
+    } catch (err) {
+      return rejectWithValue(err.message)
+    }
+  },
+)
+
+export const fetchFollowingFeed = createAsyncThunk(
+  'posts/fetchFollowingFeed',
+  async ({ page = 1, limit = 5, followingIds }, { rejectWithValue }) => {
+    try {
+      const { posts, totalCount } = await postsService.fetchPosts({ page, limit, userIds: followingIds })
       const likes = await postsService.fetchLikesForPosts(posts.map((post) => post.id))
       return { posts, totalCount, likes, page }
     } catch (err) {
@@ -89,6 +103,7 @@ const initialState = {
   totalCount: 0,
   byUserId: {},
   statusByUserId: {},
+  followingFeed: { items: [], likes: [], page: 1, limit: 5, totalCount: 0, status: 'idle' },
 }
 
 const postsSlice = createSlice({
@@ -117,6 +132,25 @@ const postsSlice = createSlice({
         state.status = 'failed'
         state.error = action.payload || 'Impossibile caricare i post.'
       })
+      .addCase(fetchFollowingFeed.pending, (state) => {
+        state.followingFeed.status = 'loading'
+      })
+      .addCase(fetchFollowingFeed.fulfilled, (state, action) => {
+        state.followingFeed.status = 'succeeded'
+        state.followingFeed.totalCount = action.payload.totalCount
+        state.followingFeed.page = action.payload.page
+        state.followingFeed.items =
+          action.payload.page === 1
+            ? action.payload.posts
+            : [...state.followingFeed.items, ...action.payload.posts]
+        const existingLikeIds = new Set(state.likes.map((like) => like.id))
+        action.payload.likes.forEach((like) => {
+          if (!existingLikeIds.has(like.id)) state.likes.push(like)
+        })
+      })
+      .addCase(fetchFollowingFeed.rejected, (state) => {
+        state.followingFeed.status = 'failed'
+      })
       .addCase(fetchPostsByUser.pending, (state, action) => {
         state.statusByUserId[action.meta.arg] = 'loading'
       })
@@ -130,6 +164,12 @@ const postsSlice = createSlice({
       })
       .addCase(fetchPostsByUser.rejected, (state, action) => {
         state.statusByUserId[action.meta.arg] = 'failed'
+      })
+      .addCase(searchPosts.fulfilled, (state, action) => {
+        const existingLikeIds = new Set(state.likes.map((like) => like.id))
+        action.payload.likes.forEach((like) => {
+          if (!existingLikeIds.has(like.id)) state.likes.push(like)
+        })
       })
       .addCase(createPost.fulfilled, (state, action) => {
         state.items.unshift(action.payload)
@@ -180,3 +220,4 @@ export const selectLikesForPost = (postId) => (state) =>
 export const selectPostsByUser = (userId) => (state) => state.posts.byUserId[userId] || []
 export const selectPostsByUserStatus = (userId) => (state) =>
   state.posts.statusByUserId[userId] || 'idle'
+export const selectFollowingFeed = (state) => state.posts.followingFeed

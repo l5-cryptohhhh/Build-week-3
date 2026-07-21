@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import Button from 'react-bootstrap/Button'
 import LoadingSpinner from '../common/LoadingSpinner'
+import RowSkeleton from '../common/RowSkeleton'
+import Skeleton from '../common/Skeleton'
 import ErrorAlert from '../common/ErrorAlert'
 import EmptyState from '../common/EmptyState'
 import MessageBubble from './MessageBubble'
 import MessageForm from './MessageForm'
-import useInterval from '../../hooks/useInterval'
 import {
   fetchMessages,
   sendMessage,
@@ -14,22 +16,29 @@ import {
   markMessageAsRead,
   selectMessagesForConversation,
   selectMessagesStatus,
+  selectMessagesPageForConversation,
+  selectMessagesTotalForConversation,
   selectConversations,
   selectConversationsStatus,
+  conversationMarkedRead,
 } from '../../features/messages/messagesSlice'
 import { selectUserById } from '../../features/users/usersSlice'
 import { selectCurrentUser } from '../../features/auth/authSlice'
-
-const MESSAGES_POLL_INTERVAL_MS = 4000
+import { requestConfirm } from '../../utils/confirm'
 
 export default function ConversationView({ conversationId }) {
   const dispatch = useDispatch()
   const currentUser = useSelector(selectCurrentUser)
   const messages = useSelector(selectMessagesForConversation(conversationId))
   const status = useSelector(selectMessagesStatus)
+  const page = useSelector(selectMessagesPageForConversation(conversationId))
+  const totalCount = useSelector(selectMessagesTotalForConversation(conversationId))
   const conversations = useSelector(selectConversations)
   const conversationsStatus = useSelector(selectConversationsStatus)
   const bottomRef = useRef(null)
+  const scrollRef = useRef(null)
+  const isLoadingMoreRef = useRef(false)
+  const prevScrollHeightRef = useRef(0)
 
   // Solo le conversazioni gia' caricate per l'utente corrente (fetchConversationsForUser)
   // possono comparire qui: questo e' il controllo lato client che impedisce di leggere i
@@ -44,16 +53,10 @@ export default function ConversationView({ conversationId }) {
 
   useEffect(() => {
     if (conversation) {
-      dispatch(fetchMessages(conversationId))
+      dispatch(fetchMessages({ conversationId, page: 1 }))
+      dispatch(conversationMarkedRead(conversationId))
     }
   }, [dispatch, conversationId, conversation])
-
-  useInterval(
-    () => {
-      if (conversation) dispatch(fetchMessages(conversationId))
-    },
-    conversation ? MESSAGES_POLL_INTERVAL_MS : null,
-  )
 
   useEffect(() => {
     messages
@@ -62,8 +65,24 @@ export default function ConversationView({ conversationId }) {
   }, [messages, currentUser.id, dispatch])
 
   useEffect(() => {
+    if (isLoadingMoreRef.current) {
+      // Messaggi piu' vecchi anteposti dal bottone "carica precedenti":
+      // si ripristina l'offset di scroll invece di saltare in fondo, cosi'
+      // la posizione di lettura dell'utente resta stabile.
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight - prevScrollHeightRef.current
+      }
+      isLoadingMoreRef.current = false
+      return
+    }
     bottomRef.current?.scrollIntoView({ block: 'end' })
   }, [messages.length])
+
+  const handleLoadPrevious = () => {
+    if (scrollRef.current) prevScrollHeightRef.current = scrollRef.current.scrollHeight
+    isLoadingMoreRef.current = true
+    dispatch(fetchMessages({ conversationId, page: page + 1 }))
+  }
 
   if (conversationsStatus === 'loading' && !conversation) {
     return <LoadingSpinner label="Caricamento conversazione..." />
@@ -81,22 +100,50 @@ export default function ConversationView({ conversationId }) {
     dispatch(editMessage({ id: messageId, content }))
   }
 
-  const handleDelete = (messageId) => {
-    if (window.confirm('Eliminare questo messaggio?')) {
-      dispatch(removeMessage({ id: messageId, conversationId }))
-    }
+  const handleDelete = async (messageId) => {
+    const confirmed = await requestConfirm({
+      title: 'Eliminare il messaggio',
+      message: 'Eliminare questo messaggio?',
+      confirmLabel: 'Elimina',
+    })
+    if (confirmed) dispatch(removeMessage({ id: messageId, conversationId }))
   }
 
   if (status === 'loading' && messages.length === 0) {
-    return <LoadingSpinner label="Caricamento messaggi..." />
+    return (
+      <div className="d-flex flex-column" style={{ height: '65vh' }}>
+        <div className="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+          <Skeleton width="40%" height="1rem" />
+        </div>
+        <div className="flex-grow-1">
+          <RowSkeleton avatarSize={28} lines={1} />
+          <RowSkeleton avatarSize={28} lines={1} />
+          <RowSkeleton avatarSize={28} lines={1} />
+        </div>
+      </div>
+    )
   }
+
+  const hasMore = messages.length < totalCount
 
   return (
     <div className="d-flex flex-column" style={{ height: '65vh' }}>
       <div className="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
         <span className="fw-semibold">{otherUser?.fullName || 'Conversazione'}</span>
       </div>
-      <div className="flex-grow-1 overflow-auto mb-3">
+      <div ref={scrollRef} className="flex-grow-1 overflow-auto mb-3">
+        {hasMore && (
+          <div className="text-center mb-2">
+            <Button
+              size="sm"
+              variant="outline-secondary"
+              disabled={status === 'loading'}
+              onClick={handleLoadPrevious}
+            >
+              {status === 'loading' ? 'Caricamento...' : 'Carica messaggi precedenti'}
+            </Button>
+          </div>
+        )}
         {messages.length === 0 ? (
           <EmptyState
             icon="bi-chat-dots"
