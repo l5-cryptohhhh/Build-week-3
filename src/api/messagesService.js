@@ -24,6 +24,16 @@ export async function fetchMessages(conversationId) {
   return data
 }
 
+export async function fetchUnreadMessages(conversationIds, userId) {
+  if (!conversationIds.length) return []
+  const params = new URLSearchParams()
+  conversationIds.forEach((id) => params.append('conversationId', id))
+  params.append('read', 'false')
+  params.append('userId_ne', userId)
+  const { data } = await httpClient.get(`/messages?${params.toString()}`)
+  return data
+}
+
 export async function sendMessage(message) {
   const { data } = await httpClient.post('/messages', message)
   return data
