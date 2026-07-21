@@ -6,10 +6,244 @@ body,
 
 body {
   background-color: #f4f2ee;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+[data-bs-theme='dark'] body {
+  background-color: #18191a;
+}
+
+/* Alcune utility Bootstrap (text-dark, bg-light, bg-white) sono pensate per
+   restare fisse anche in dark mode; qui le rendiamo consapevoli del tema
+   perche' nel progetto sono usate per lo stile di default, non per forzare
+   sempre il chiaro (es. link "come testo normale", bolle di commenti/messaggi). */
+[data-bs-theme='dark'] .text-dark {
+  color: var(--bs-body-color) !important;
+}
+
+[data-bs-theme='dark'] .bg-light {
+  background-color: #26282b !important;
+}
+
+[data-bs-theme='dark'] .bg-white {
+  background-color: var(--bs-body-bg) !important;
 }
 
 .no-caret::after {
   display: none;
+}
+
+/* Micro-interazioni globali */
+.btn,
+.nav-link,
+.dropdown-item,
+.card,
+a {
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+    transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+@keyframes like-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.like-pop {
+  animation: like-pop 0.3s ease;
+}
+
+@keyframes bell-bump {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  20% {
+    transform: rotate(-15deg);
+  }
+  40% {
+    transform: rotate(12deg);
+  }
+  60% {
+    transform: rotate(-8deg);
+  }
+  80% {
+    transform: rotate(4deg);
+  }
+}
+
+.bell-bump {
+  display: inline-block;
+  animation: bell-bump 0.6s ease;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.empty-state-fade,
+.animate-fade-in {
+  animation: fade-in-up 0.3s ease both;
+}
+
+/* Fade-up progressivo per immagini (avatar, post): l'immagine resta
+   trasparente finche' non e' effettivamente caricata, invece di comparire
+   di scatto o mostrare per un istante un riquadro vuoto. */
+.fade-img {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.fade-img-loaded {
+  opacity: 1;
+}
+
+/* Indicatore utente online: pallino verde + anello che pulsa, sovrapposto
+   in basso a destra sull'avatar (vedi Avatar.jsx). */
+.online-dot {
+  position: absolute;
+  bottom: 2%;
+  right: 2%;
+  width: 28%;
+  height: 28%;
+  min-width: 9px;
+  min-height: 9px;
+  background: #2fb344;
+  border: 2px solid var(--bs-body-bg);
+  border-radius: 50%;
+}
+
+.online-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid #2fb344;
+  animation: online-pulse 1.8s ease-out infinite;
+}
+
+@keyframes online-pulse {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+/* Barra di caricamento globale (vedi TopLoadingBar), mostrata mentre almeno
+   una richiesta Redux e' in corso. */
+.top-loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--bs-primary), #60a5fa, var(--bs-primary));
+  background-size: 200% 100%;
+  animation: loading-bar-sweep 1.1s ease-in-out infinite;
+  z-index: 2000;
+}
+
+@keyframes loading-bar-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Scrollbar personalizzata, consapevole del tema */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c8d1 transparent;
+}
+
+[data-bs-theme='dark'] * {
+  scrollbar-color: #43484e transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #c1c8d1;
+  border-radius: 6px;
+}
+
+[data-bs-theme='dark'] *::-webkit-scrollbar-thumb {
+  background-color: #43484e;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #9aa4b0;
+}
+
+.empty-state-icon-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  background: var(--bs-secondary-bg);
+  color: var(--bs-secondary-color);
+}
+
+/* Skeleton loader */
+.skeleton {
+  --skeleton-base: #e9ecef;
+  --skeleton-highlight: #f6f7f8;
+  display: inline-block;
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-highlight) 37%,
+    var(--skeleton-base) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+[data-bs-theme='dark'] .skeleton {
+  --skeleton-base: #2a2d31;
+  --skeleton-highlight: #35383c;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
 }
 
 /* Brand logo (inClone) */
@@ -25,6 +259,10 @@ body {
 
 .brand-logo .brand-clone {
   color: #1d2226;
+}
+
+[data-bs-theme='dark'] .brand-logo .brand-clone {
+  color: var(--bs-body-color);
 }
 
 /* Deterministic gradient fallback avatars */
@@ -44,24 +282,13 @@ body {
 .profile-cover {
   height: 80px;
   background: linear-gradient(120deg, #2563eb, #1e3a8a);
+  background-size: cover;
+  background-position: center;
 }
 
-/* Indicatore conversazione con messaggi non letti */
-.conversation-row-unread {
-  background-color: #e7f3ff;
-}
-
-.conversation-row-unread:hover {
-  background-color: #d6ebff;
-}
-
-.unread-dot {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: #dc3545;
-  border: 2px solid #fff;
+.profile-cover-preview {
+  height: 90px;
+  background: linear-gradient(120deg, #2563eb, #1e3a8a);
+  background-size: cover;
+  background-position: center;
 }

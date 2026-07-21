@@ -2,15 +2,15 @@ import { useState } from 'react'
 import Form from 'react-bootstrap/Form'
 import Button from 'react-bootstrap/Button'
 
-export default function CommentForm({ onSubmit }) {
-  const [content, setContent] = useState('')
+export default function CommentForm({ initialValue = '', submitLabel, onSubmit, onCancel }) {
+  const [content, setContent] = useState(initialValue)
 
   const handleSubmit = (event) => {
     event.preventDefault()
     const trimmed = content.trim()
     if (!trimmed) return
     onSubmit(trimmed)
-    setContent('')
+    if (!initialValue) setContent('')
   }
 
   return (
@@ -20,9 +20,15 @@ export default function CommentForm({ onSubmit }) {
         placeholder="Scrivi un commento..."
         value={content}
         onChange={(event) => setContent(event.target.value)}
+        autoFocus={Boolean(initialValue)}
       />
+      {onCancel && (
+        <Button size="sm" variant="outline-secondary" type="button" onClick={onCancel}>
+          Annulla
+        </Button>
+      )}
       <Button size="sm" variant="primary" type="submit" disabled={!content.trim()}>
-        Invia
+        {onCancel ? submitLabel || 'Salva' : 'Invia'}
       </Button>
     </Form>
   )

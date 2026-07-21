@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "server": "node server/server.js",
-    "dev:all": "concurrently -n WEB,API -c blue,green \"npm:dev\" \"npm:server\""
+    "dev:all": "concurrently -k -n WEB,API -c blue,green \"npm:dev\" \"npm:server\""
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",
@@ -20,7 +20,8 @@
     "react-bootstrap": "^2.10.10",
     "react-dom": "^19.2.7",
     "react-redux": "^9.3.0",
-    "react-router-dom": "^7.18.1"
+    "react-router-dom": "^7.18.1",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",
@@ -30,7 +31,9 @@
     "express": "^4.22.2",
     "json-server": "^0.17.4",
     "json-server-auth": "^2.1.0",
+    "jsonwebtoken": "^9.0.3",
     "oxlint": "^1.71.0",
+    "socket.io": "^4.8.3",
     "vite": "^8.1.1"
   }
 }

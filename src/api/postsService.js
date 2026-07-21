@@ -1,9 +1,16 @@
 import httpClient from './httpClient'
 
-export async function fetchPosts({ page = 1, limit = 5 } = {}) {
-  const { data, headers } = await httpClient.get('/posts', {
-    params: { _sort: 'createdAt', _order: 'desc', _page: page, _limit: limit },
-  })
+export async function fetchPosts({ page = 1, limit = 5, q, userIds } = {}) {
+  // json-server tratta piu' valori dello stesso parametro come filtro OR
+  // (stessa tecnica gia' usata in fetchLikesForPosts per piu' postId).
+  const params = new URLSearchParams()
+  params.set('_sort', 'createdAt')
+  params.set('_order', 'desc')
+  params.set('_page', page)
+  params.set('_limit', limit)
+  if (q) params.set('q', q)
+  if (userIds) userIds.forEach((id) => params.append('userId', id))
+  const { data, headers } = await httpClient.get(`/posts?${params.toString()}`)
   return { posts: data, totalCount: Number(headers['x-total-count'] ?? data.length) }
 }
 

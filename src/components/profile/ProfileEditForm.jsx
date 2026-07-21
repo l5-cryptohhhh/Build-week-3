@@ -6,6 +6,24 @@ import { isValidUsername } from '../../utils/validators'
 import Avatar from '../common/Avatar'
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024
+const MAX_COVER_BYTES = 2 * 1024 * 1024
+
+function readImageFile(file, maxBytes) {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('Seleziona un file immagine valido.'))
+      return
+    }
+    if (file.size > maxBytes) {
+      reject(new Error("L'immagine supera la dimensione massima di 2MB."))
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error('Impossibile leggere il file.'))
+    reader.readAsDataURL(file)
+  })
+}
 
 export default function ProfileEditForm({ show, user, onClose, onSave, isSaving }) {
   const [form, setForm] = useState({
@@ -14,6 +32,7 @@ export default function ProfileEditForm({ show, user, onClose, onSave, isSaving 
     jobTitle: user.jobTitle || '',
     bio: user.bio || '',
     avatarUrl: user.avatarUrl || '',
+    coverUrl: user.coverUrl || '',
   })
   const [error, setError] = useState(null)
 
@@ -22,28 +41,38 @@ export default function ProfileEditForm({ show, user, onClose, onSave, isSaving 
     setForm((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleAvatarFileChange = (event) => {
+  const handleAvatarFileChange = async (event) => {
     const file = event.target.files[0]
     event.target.value = ''
     if (!file) return
-    if (!file.type.startsWith('image/')) {
-      setError('Seleziona un file immagine valido.')
-      return
-    }
-    if (file.size > MAX_AVATAR_BYTES) {
-      setError("L'immagine supera la dimensione massima di 2MB.")
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = () => {
+    try {
+      const dataUrl = await readImageFile(file, MAX_AVATAR_BYTES)
       setError(null)
-      setForm((prev) => ({ ...prev, avatarUrl: reader.result }))
+      setForm((prev) => ({ ...prev, avatarUrl: dataUrl }))
+    } catch (err) {
+      setError(err.message)
     }
-    reader.readAsDataURL(file)
+  }
+
+  const handleCoverFileChange = async (event) => {
+    const file = event.target.files[0]
+    event.target.value = ''
+    if (!file) return
+    try {
+      const dataUrl = await readImageFile(file, MAX_COVER_BYTES)
+      setError(null)
+      setForm((prev) => ({ ...prev, coverUrl: dataUrl }))
+    } catch (err) {
+      setError(err.message)
+    }
   }
 
   const handleRemoveAvatar = () => {
     setForm((prev) => ({ ...prev, avatarUrl: '' }))
+  }
+
+  const handleRemoveCover = () => {
+    setForm((prev) => ({ ...prev, coverUrl: '' }))
   }
 
   const handleSubmit = (event) => {
@@ -68,6 +97,32 @@ export default function ProfileEditForm({ show, user, onClose, onSave, isSaving 
       <Form onSubmit={handleSubmit}>
         <Modal.Body>
           {error && <p className="text-danger">{error}</p>}
+          <Form.Group className="mb-3" controlId="editCoverFile">
+            <Form.Label>Copertina profilo (opzionale)</Form.Label>
+            <div
+              className="rounded mb-2 profile-cover-preview"
+              style={
+                form.coverUrl
+                  ? { backgroundImage: `url(${form.coverUrl})` }
+                  : undefined
+              }
+            />
+            <div className="d-flex align-items-center gap-3">
+              <Form.Control type="file" accept="image/*" onChange={handleCoverFileChange} />
+              {form.coverUrl && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="p-0 text-danger text-decoration-none flex-shrink-0"
+                  type="button"
+                  onClick={handleRemoveCover}
+                >
+                  Rimuovi
+                </Button>
+              )}
+            </div>
+            <Form.Text className="text-secondary">Max 2MB.</Form.Text>
+          </Form.Group>
           <Form.Group className="mb-3" controlId="editFullName">
             <Form.Label>Nome completo</Form.Label>
             <Form.Control name="fullName" value={form.fullName} onChange={handleChange} required />

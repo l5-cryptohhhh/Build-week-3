@@ -2,11 +2,9 @@ import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import Button from 'react-bootstrap/Button'
 import PostCard from './PostCard'
-import LoadingSpinner from '../common/LoadingSpinner'
+import PostCardSkeleton from './PostCardSkeleton'
 import ErrorAlert from '../common/ErrorAlert'
 import EmptyState from '../common/EmptyState'
-import useInterval from '../../hooks/useInterval'
-import { fetchCommentsForPosts } from '../../features/comments/commentsSlice'
 import {
   fetchPosts,
   selectAllPosts,
@@ -17,8 +15,6 @@ import {
   selectPostsTotalCount,
 } from '../../features/posts/postsSlice'
 
-const COMMENTS_POLL_INTERVAL_MS = 6000
-
 export default function PostList() {
   const dispatch = useDispatch()
   const posts = useSelector(selectAllPosts)
@@ -27,31 +23,23 @@ export default function PostList() {
   const page = useSelector(selectPostsPage)
   const limit = useSelector(selectPostsLimit)
   const totalCount = useSelector(selectPostsTotalCount)
-  const postIds = posts.map((post) => post.id)
 
   useEffect(() => {
     dispatch(fetchPosts({ page: 1, limit }))
   }, [dispatch, limit])
-
-  useEffect(() => {
-    if (posts.length > 0) {
-      dispatch(fetchCommentsForPosts(posts.map((post) => post.id)))
-    }
-  }, [dispatch, posts])
-
-  useInterval(
-    () => {
-      if (postIds.length > 0) dispatch(fetchCommentsForPosts(postIds))
-    },
-    postIds.length > 0 ? COMMENTS_POLL_INTERVAL_MS : null,
-  )
 
   const handleLoadMore = () => {
     dispatch(fetchPosts({ page: page + 1, limit }))
   }
 
   if (status === 'loading' && posts.length === 0) {
-    return <LoadingSpinner label="Caricamento post..." />
+    return (
+      <div>
+        <PostCardSkeleton />
+        <PostCardSkeleton />
+        <PostCardSkeleton />
+      </div>
+    )
   }
 
   if (status === 'failed' && posts.length === 0) {

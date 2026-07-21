@@ -24,7 +24,9 @@ export default function MessageBubble({ message, isOwn, onEdit, onDelete }) {
   }
 
   return (
-    <div className={`d-flex mb-2 ${isOwn ? 'justify-content-end' : 'justify-content-start'}`}>
+    <div
+      className={`d-flex mb-2 animate-fade-in ${isOwn ? 'justify-content-end' : 'justify-content-start'}`}
+    >
       <div
         className={`d-flex align-items-end gap-1 ${isOwn ? 'flex-row-reverse' : ''}`}
         style={{ maxWidth: '75%' }}
@@ -34,10 +36,17 @@ export default function MessageBubble({ message, isOwn, onEdit, onDelete }) {
             {message.content}
           </p>
           <div
-            className={isOwn ? 'text-white-50 text-end' : 'text-secondary text-end'}
+            className={`d-flex align-items-center justify-content-end gap-1 ${isOwn ? 'text-white-50' : 'text-secondary'}`}
             style={{ fontSize: '0.7rem' }}
           >
             {formatRelativeTime(message.createdAt)}
+            {isOwn && (
+              <i
+                className={`bi ${message.read ? 'bi-check2-all text-white' : 'bi-check2'}`}
+                aria-label={message.read ? 'Letto' : 'Inviato'}
+                title={message.read ? 'Letto' : 'Inviato'}
+              ></i>
+            )}
           </div>
         </div>
         {isOwn && (

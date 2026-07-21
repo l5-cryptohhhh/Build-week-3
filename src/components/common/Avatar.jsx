@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const GRADIENT_COUNT = 6
 
 function getInitials(fullName = '') {
@@ -17,26 +19,33 @@ function getGradientClass(user) {
   return `avatar-gradient-${hash % GRADIENT_COUNT}`
 }
 
-export default function Avatar({ user, size = 40, className = '' }) {
+export default function Avatar({ user, size = 40, className = '', online = false }) {
+  const [isLoaded, setIsLoaded] = useState(false)
   const style = { width: size, height: size, fontSize: size * 0.4, flexShrink: 0 }
 
-  if (user?.avatarUrl) {
-    return (
-      <img
-        src={user.avatarUrl}
-        alt={user.fullName}
-        className={`rounded-circle object-fit-cover ${className}`}
-        style={style}
-      />
-    )
-  }
-
-  return (
+  const inner = user?.avatarUrl ? (
+    <img
+      src={user.avatarUrl}
+      alt={user.fullName}
+      onLoad={() => setIsLoaded(true)}
+      className={`rounded-circle object-fit-cover ${className} fade-img ${isLoaded ? 'fade-img-loaded' : ''}`}
+      style={style}
+    />
+  ) : (
     <span
       className={`rounded-circle text-white d-inline-flex align-items-center justify-content-center fw-semibold ${getGradientClass(user)} ${className}`}
       style={style}
     >
       {getInitials(user?.fullName) || '?'}
+    </span>
+  )
+
+  if (!online) return inner
+
+  return (
+    <span className="position-relative d-inline-block" style={{ lineHeight: 0 }}>
+      {inner}
+      <span className="online-dot" aria-label="Online"></span>
     </span>
   )
 }

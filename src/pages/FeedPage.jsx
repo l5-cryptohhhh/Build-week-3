@@ -1,23 +1,28 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import Card from 'react-bootstrap/Card'
+import Nav from 'react-bootstrap/Nav'
 import PostForm from '../components/posts/PostForm'
 import PostList from '../components/posts/PostList'
+import FollowingFeedList from '../components/posts/FollowingFeedList'
 import Avatar from '../components/common/Avatar'
 import { createPost } from '../features/posts/postsSlice'
 import { fetchAllUsers } from '../features/users/usersSlice'
+import { fetchFollowData } from '../features/follow/followSlice'
 import { selectCurrentUser } from '../features/auth/authSlice'
 
 export default function FeedPage() {
   const dispatch = useDispatch()
   const currentUser = useSelector(selectCurrentUser)
+  const [feedMode, setFeedMode] = useState('all')
 
   useEffect(() => {
     dispatch(fetchAllUsers())
-  }, [dispatch])
+    dispatch(fetchFollowData(currentUser.id))
+  }, [dispatch, currentUser.id])
 
   const handleCreatePost = ({ content, imageUrl }) => {
     const now = new Date().toISOString()
@@ -57,7 +62,19 @@ export default function FeedPage() {
             <PostForm submitLabel="Pubblica" onSubmit={handleCreatePost} showImageField />
           </Card.Body>
         </Card>
-        <PostList />
+
+        <Nav variant="pills" activeKey={feedMode} onSelect={setFeedMode} className="mb-3 gap-2">
+          <Nav.Item>
+            <Nav.Link eventKey="all">Tutti i post</Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="following">
+              <i className="bi bi-person-heart me-1"></i>Chi segui
+            </Nav.Link>
+          </Nav.Item>
+        </Nav>
+
+        {feedMode === 'all' ? <PostList /> : <FollowingFeedList />}
       </Col>
 
       <Col lg={3} className="d-none d-lg-block">
