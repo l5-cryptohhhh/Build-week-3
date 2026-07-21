@@ -16,18 +16,7 @@
       "Bash(npx playwright *)",
       "Bash(node shot2.mjs)",
       "Bash(node shot3.mjs)",
-<<<<<<< HEAD
-      "Bash(node cleanup.mjs)",
-      "Bash(netstat -ano)",
-      "Bash(timeout 8 npm run server)",
-      "Bash(wmic process *)",
-      "Bash(powershell -NoProfile -Command \"Get-CimInstance Win32_Process -Filter 'ProcessId=21560' | Select-Object -ExpandProperty CommandLine\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3001/posts)",
-      "Bash(powershell -NoProfile -Command \"Get-Process -Id 16360 | Select-Object Id,ProcessName,Path\")",
-      "Bash(powershell -NoProfile -Command \"Stop-Process -Id 16360 -Force\")"
-=======
       "Bash(node cleanup.mjs)"
->>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
     ]
   }
 }
