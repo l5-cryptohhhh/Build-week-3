@@ -50,6 +50,17 @@
       "bio": "",
       "createdAt": "2026-07-20T14:29:31.665Z",
       "id": 5
+    },
+    {
+      "email": "skibidi@gmail.com",
+      "password": "$2a$10$YTd8lxKV5or.ukVhMnX6peit.p4dGpffv1QsCuUXcsHssgbyw2s6a",
+      "username": "SaltyGhosty",
+      "fullName": "Luciano Labbozzetta",
+      "jobTitle": "Studente Full-Stack EPICODE",
+      "avatarUrl": "",
+      "bio": "",
+      "createdAt": "2026-07-21T09:11:22.317Z",
+      "id": 6
     }
   ],
   "posts": [
@@ -286,6 +297,11 @@
       "postId": 10,
       "userId": 5,
       "id": 16
+    },
+    {
+      "postId": 13,
+      "userId": 6,
+      "id": 17
     }
   ],
   "conversations": [
@@ -312,6 +328,12 @@
       "participant2Id": 4,
       "createdAt": "2026-07-20T13:34:22.346Z",
       "id": 4
+    },
+    {
+      "participant1Id": 6,
+      "participant2Id": 5,
+      "createdAt": "2026-07-21T09:18:50.585Z",
+      "id": 5
     }
   ],
   "messages": [
@@ -434,6 +456,14 @@
       "read": false,
       "createdAt": "2026-07-20T14:30:36.632Z",
       "id": 15
+    },
+    {
+      "conversationId": 5,
+      "userId": 6,
+      "content": "we",
+      "read": false,
+      "createdAt": "2026-07-21T09:18:54.930Z",
+      "id": 16
     }
   ]
 }
