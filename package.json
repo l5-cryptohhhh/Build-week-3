@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "server": "node server/server.js",
-    "dev:all": "concurrently -k -n WEB,API -c blue,green \"npm:dev\" \"npm:server\""
+    "dev:all": "concurrently -n WEB,API -c blue,green \"npm:dev\" \"npm:server\""
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",
