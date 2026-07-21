@@ -135,6 +135,10 @@ nel README.
 
 ## Changelog
 
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 3070ec9 (button e url foto sistemate)
 - **2026-07-21** — Upload reale immagine profilo: `ProfileEditForm` sostituisce
   il campo URL testuale con `<input type="file">` (accetta immagini, max
   2MB) codificato in base64 e salvato come `avatarUrl` in `db.json`. Nel
@@ -166,6 +170,13 @@ nel README.
   di body e con un test di guardia (owner diverso -> 403 confermato
   invariato). `npm run server` / `npm run dev:all` restano gli stessi
   comandi, solo l'implementazione dietro `npm run server` e' cambiata.
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
+=======
+>>>>>>> 3070ec9 (button e url foto sistemate)
+=======
 - **2026-07-21** — Fix contatore commenti "in ritardo" + indicatore
   messaggi non letti. Il numero sul bottone "Commenti" veniva letto solo
   dallo slice Redux dei commenti, popolato esclusivamente quando l'utente
@@ -188,6 +199,7 @@ nel README.
   Verificato in browser con due sessioni Playwright (Mario/Giulia): invio
   messaggio da una sessione, comparsa automatica del pallino rosso
   sull'altra entro un ciclo di polling, nessun errore console.
+>>>>>>> origin/main
 - **2026-07-20** — Restyling grafico ispirato a LinkedIn ("inClone"): rebranding
   navbar/pagine auth, layout feed a 3 colonne (mini-profilo sticky + feed +
   card "Novità"), avatar di fallback con gradiente deterministico al posto
