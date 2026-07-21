@@ -19,10 +19,6 @@ export default function PostForm({
   showImageField = false,
 }) {
   const [content, setContent] = useState(initialContent)
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 3070ec9 (button e url foto sistemate)
   const [linkUrl, setLinkUrl] = useState(isDataUrl(initialImageUrl) ? '' : initialImageUrl)
   const [uploadedMedia, setUploadedMedia] = useState(() =>
     isDataUrl(initialImageUrl)
@@ -32,20 +28,11 @@ export default function PostForm({
   const [fileError, setFileError] = useState(null)
   const photoInputRef = useRef(null)
   const videoInputRef = useRef(null)
-<<<<<<< HEAD
-=======
-  const [imageUrl, setImageUrl] = useState(initialImageUrl)
-  const [showImageInput, setShowImageInput] = useState(Boolean(initialImageUrl))
->>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
-=======
->>>>>>> 3070ec9 (button e url foto sistemate)
 
   const handleSubmit = (event) => {
     event.preventDefault()
     const trimmed = content.trim()
     if (!trimmed) return
-<<<<<<< HEAD
-<<<<<<< HEAD
     onSubmit({ content: trimmed, imageUrl: uploadedMedia ? uploadedMedia.url : linkUrl.trim() })
     if (!initialContent) {
       setContent('')
@@ -53,41 +40,6 @@ export default function PostForm({
       setUploadedMedia(null)
       setFileError(null)
     }
-  }
-
-  const readFileAsMedia = (file, maxBytes, label, kind) => {
-    if (file.size > maxBytes) {
-      setFileError(`File troppo grande per ${label} (max ${Math.round(maxBytes / (1024 * 1024))}MB).`)
-      return
-    }
-    setFileError(null)
-    const reader = new FileReader()
-    reader.onload = () => setUploadedMedia({ url: reader.result, kind })
-    reader.readAsDataURL(file)
-  }
-
-  const handlePhotoChange = (event) => {
-    const file = event.target.files[0]
-    event.target.value = ''
-    if (file) readFileAsMedia(file, MAX_PHOTO_BYTES, 'le foto', 'image')
-  }
-
-  const handleVideoChange = (event) => {
-    const file = event.target.files[0]
-    event.target.value = ''
-    if (file) readFileAsMedia(file, MAX_VIDEO_BYTES, 'i video', 'video')
-=======
-    onSubmit({ content: trimmed, imageUrl: imageUrl.trim() })
-=======
-    onSubmit({ content: trimmed, imageUrl: uploadedMedia ? uploadedMedia.url : linkUrl.trim() })
->>>>>>> 3070ec9 (button e url foto sistemate)
-    if (!initialContent) {
-      setContent('')
-      setLinkUrl('')
-      setUploadedMedia(null)
-      setFileError(null)
-    }
->>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
   }
 
   const readFileAsMedia = (file, maxBytes, label, kind) => {
@@ -125,10 +77,6 @@ export default function PostForm({
           required
         />
       </Form.Group>
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 3070ec9 (button e url foto sistemate)
 
       {showImageField && (
         <>
@@ -159,92 +107,6 @@ export default function PostForm({
                 <i className="bi bi-x-lg"></i>
               </Button>
             </div>
-<<<<<<< HEAD
-          )}
-
-          <Form.Group className="mb-2" controlId="postImageUrl">
-            <Form.Control
-              type="text"
-              placeholder="Oppure incolla un link esterno (foto, video, sito/canale)..."
-              value={linkUrl}
-              onChange={(event) => setLinkUrl(event.target.value)}
-              disabled={Boolean(uploadedMedia)}
-            />
-          </Form.Group>
-
-          <div className="d-flex gap-2 mb-2">
-            <input
-              type="file"
-              accept="image/*"
-              ref={photoInputRef}
-              onChange={handlePhotoChange}
-              className="d-none"
-            />
-            <input
-              type="file"
-              accept="video/*"
-              ref={videoInputRef}
-              onChange={handleVideoChange}
-              className="d-none"
-            />
-            <Button
-              variant="primary"
-              type="button"
-              className="rounded-pill d-inline-flex align-items-center gap-1"
-              onClick={() => photoInputRef.current?.click()}
-              title="Carica foto"
-            >
-              <i className="bi bi-camera-fill"></i>Immagine
-            </Button>
-            <Button
-              variant="danger"
-              type="button"
-              className="rounded-pill d-inline-flex align-items-center gap-1"
-              onClick={() => videoInputRef.current?.click()}
-              title="Carica video"
-            >
-              <i className="bi bi-play-fill"></i>Video
-            </Button>
-          </div>
-        </>
-      )}
-
-      <div className="d-flex justify-content-end gap-2">
-        {onCancel && (
-          <Button variant="outline-secondary" type="button" onClick={onCancel}>
-            Annulla
-=======
-      {showImageInput && (
-        <Form.Group className="mb-2" controlId="postImageUrl">
-          <Form.Control
-            type="text"
-            placeholder="URL immagine (https://...)"
-            value={imageUrl}
-            onChange={(event) => setImageUrl(event.target.value)}
-          />
-        </Form.Group>
-      )}
-      <div className="d-flex justify-content-between align-items-center gap-2">
-        {showImageField ? (
-          <Button
-            variant="outline-secondary"
-            type="button"
-            size="sm"
-            onClick={() => setShowImageInput((prev) => !prev)}
-          >
-            <i className="bi bi-image me-1"></i>Aggiungi immagine
->>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
-          </Button>
-        ) : (
-          <span />
-        )}
-        <div className="d-flex gap-2">
-          {onCancel && (
-            <Button variant="outline-secondary" type="button" onClick={onCancel}>
-              Annulla
-            </Button>
-=======
->>>>>>> 3070ec9 (button e url foto sistemate)
           )}
 
           <Form.Group className="mb-2" controlId="postImageUrl">
