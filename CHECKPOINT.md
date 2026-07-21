@@ -144,6 +144,22 @@ nel README.
 
 ## Limiti noti (vedi anche README)
 
+- **Widget "inClone Notizie" (feed, colonna destra)**: consuma
+  `https://api.apitube.io/v1/news/everything` con una API key salvata in
+  `.env.local` (non tracciato in git, coperto dal pattern `*.local` gia'
+  presente in `.gitignore` — a differenza di `.env`, che invece e' tracciato
+  e quindi non deve mai contenere segreti). La key fornita e' di livello
+  trial: i campi `href`/`source.domain`/`image`/`description`/`body` tornano
+  troncati con un suffisso letterale `[Upgrade subscription plan]` inserito
+  dall'API stessa nel valore della stringa (verificato con richieste dirette,
+  non e' un bug di parsing). Per questo il widget mostra solo titolo e data
+  relativa (`published_at`), senza link cliccabile ne' nome della fonte: un
+  `<a href>` verso quell'URL troncato porterebbe a una pagina inesistente.
+  Se in futuro si passa a una key con piano superiore, si puo' reintrodurre
+  il link esterno e la fonte in `NewsWidget.jsx`. Fetch diretta dal browser
+  (nessun proxy server-side): la key finisce comunque nel bundle client,
+  accettabile per una demo didattica ma da tenere a mente se il repo diventa
+  pubblico con una key reale.
 - Upload reale solo per avatar profilo e media dei post (foto/video), via
   base64 in `db.json` — nessun object storage dedicato, nessun
   OAuth/pagamenti (fuori scope dichiarato).
@@ -177,6 +193,62 @@ nel README.
 
 ## Changelog
 
+- **2026-07-21** — Follow-up al giro precedente: tetto di 10 notizie con
+  toggle mostra/nascondi, sidebar con scroll interno, chiarito un falso
+  allarme sul player YouTube. `NewsWidget` non pagina piu' all'infinito:
+  dopo il secondo batch (10 notizie totali) il bottone smette di scaricare
+  altre pagine e diventa un toggle client-side sui dati gia' in memoria
+  ("Mostra meno notizie" / freccia su per comprimere a 5, "Mostra altre
+  notizie" / freccia giu per riespandere, senza nuove richieste). `.feed-sidebar`
+  (`index.css`) ha ora `max-height: calc(100vh - 5.5rem - 5.5rem)` +
+  `overflow-y: auto`: con la sidebar `position: sticky`, il contenuto in
+  eccesso (es. il footer sotto le 10 notizie espanse) restava sotto il fold
+  del viewport e irraggiungibile scrollando la pagina — la sticky resta
+  ancorata a `top: 5.5rem` per quasi tutta la durata dello scroll del feed,
+  quindi il proprio contenuto in eccesso non "scorre mai in vista" finche'
+  non si arriva in fondo alla pagina, punto in cui il `MessengerWidget`
+  (fixed, non si sposta con lo scroll) lo ricopriva comunque. Ora la sidebar
+  scrolla al proprio interno, sempre staccata dall'area occupata dal widget
+  messaggi. Verificato anche il presunto regresso "il video YouTube non si
+  vede piu' diretto in app": non e' un bug introdotto — quel video specifico
+  (`nZyQBKf4LbU`, highlights AS Roma) ha l'embedding disabilitato dal
+  proprietario del canale (comportamento nativo di YouTube, errore 153 se
+  aperto come URL diretto fuori da un iframe); confermato con un video di
+  controllo notoriamente embeddabile che riproduce correttamente nello
+  stesso identico componente `PostLinkPreview`, quindi nessuna modifica al
+  codice per questo punto. Verificato in browser reale con Playwright.
+- **2026-07-21** — Widget notizie (apitube), footer sidebar, sync banner
+  profilo, conteggio commenti sempre visibile, condivisione post, messenger
+  flottante. Feed: la card "Novita' della Build Week" nella colonna destra e'
+  sostituita da `NewsWidget` (nuovo `src/api/newsService.js`), che mostra le
+  ultime 5 notizie da apitube.io e un bottone "Mostra altre notizie" che ne
+  aggiunge altre 5 per pagina (vedi limiti noti sopra sul livello della key);
+  sotto, nuovo `SidebarFooter` replica i link statici in stile LinkedIn dello
+  screenshot di riferimento. Il banner blu della mini-card profilo in
+  `FeedPage` ora legge `currentUser.coverUrl` come gia' faceva `ProfileCard`:
+  prima restava sempre il gradiente di default anche dopo aver caricato una
+  copertina da `/profile/:id` (il dato in Redux era gia' sincronizzato via
+  `updateProfile.fulfilled` in `authSlice`, mancava solo lo style nel
+  componente). `PostCard` ora scarica la prima pagina di commenti al
+  montaggio (non solo all'apertura di `CommentList`) cosi' il conteggio
+  compare accanto ai like prima ancora di aprire i commenti, come per i like;
+  nuovo bottone "Condividi" (`ShareMenu.jsx`) con WhatsApp/Telegram (intent
+  web reali, precompilati con testo+link) e Instagram/TikTok/YouTube (nessun
+  intent web di terze parti per condividere testo: si copia il link negli
+  appunti e si apre il sito, con toast di conferma). Nuovo `MessengerWidget`
+  (montato in `MainLayout`, nascosto sulla rotta `/messages` per non
+  duplicare la UI della pagina dedicata): pillola in basso a destra con
+  badge dei non letti, click apre l'elenco conversazioni (riusa i selettori
+  di `messagesSlice`, gia' popolati globalmente in `App.jsx`); click su una
+  conversazione apre un secondo pannello flottante a sinistra con la chat
+  completa. Per questo, `ConversationView` accetta ora due prop opzionali
+  (`compact`, `onClose`) che riducono l'altezza e aggiungono avatar+bottone
+  di chiusura nell'header, riusando 1:1 la stessa logica di fetch/invio/
+  paginazione/scroll della pagina messaggi a tutto schermo invece di
+  duplicarla in un componente parallelo. Verificato in browser reale con
+  Playwright (login, feed, paginazione notizie, apertura commenti, menu di
+  condivisione, apertura/chiusura chat dal widget) — nessun errore in
+  console, lint e build puliti.
 - **2026-07-21** — Messaggistica realtime, notifiche, ricerca+paginazione,
   modifica commenti (le 4 milestone "prossimi passi" della voce precedente,
   ora implementate). Backend: `server/server.js` espone esplicitamente

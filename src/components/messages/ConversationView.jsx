@@ -6,6 +6,7 @@ import RowSkeleton from '../common/RowSkeleton'
 import Skeleton from '../common/Skeleton'
 import ErrorAlert from '../common/ErrorAlert'
 import EmptyState from '../common/EmptyState'
+import Avatar from '../common/Avatar'
 import MessageBubble from './MessageBubble'
 import MessageForm from './MessageForm'
 import {
@@ -26,7 +27,11 @@ import { selectUserById } from '../../features/users/usersSlice'
 import { selectCurrentUser } from '../../features/auth/authSlice'
 import { requestConfirm } from '../../utils/confirm'
 
-export default function ConversationView({ conversationId }) {
+// `compact`/`onClose` sono usati dal MessengerWidget (popup flottante in
+// basso a destra): stessa logica di fetch/invio/paginazione della pagina
+// messaggi a tutto schermo, solo altezza ridotta e un header con avatar +
+// bottone di chiusura invece del semplice nome.
+export default function ConversationView({ conversationId, compact = false, onClose }) {
   const dispatch = useDispatch()
   const currentUser = useSelector(selectCurrentUser)
   const messages = useSelector(selectMessagesForConversation(conversationId))
@@ -109,9 +114,11 @@ export default function ConversationView({ conversationId }) {
     if (confirmed) dispatch(removeMessage({ id: messageId, conversationId }))
   }
 
+  const height = compact ? '360px' : '65vh'
+
   if (status === 'loading' && messages.length === 0) {
     return (
-      <div className="d-flex flex-column" style={{ height: '65vh' }}>
+      <div className="d-flex flex-column" style={{ height }}>
         <div className="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
           <Skeleton width="40%" height="1rem" />
         </div>
@@ -127,9 +134,20 @@ export default function ConversationView({ conversationId }) {
   const hasMore = messages.length < totalCount
 
   return (
-    <div className="d-flex flex-column" style={{ height: '65vh' }}>
+    <div className="d-flex flex-column" style={{ height }}>
       <div className="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-        <span className="fw-semibold">{otherUser?.fullName || 'Conversazione'}</span>
+        {compact && <Avatar user={otherUser} size={28} />}
+        <span className="fw-semibold text-truncate">{otherUser?.fullName || 'Conversazione'}</span>
+        {onClose && (
+          <button
+            type="button"
+            className="btn btn-sm btn-link text-secondary p-0 ms-auto"
+            onClick={onClose}
+            aria-label="Chiudi chat"
+          >
+            <i className="bi bi-x-lg"></i>
+          </button>
+        )}
       </div>
       <div ref={scrollRef} className="flex-grow-1 overflow-auto mb-3">
         {hasMore && (

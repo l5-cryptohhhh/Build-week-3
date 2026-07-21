@@ -9,6 +9,8 @@ import PostForm from '../components/posts/PostForm'
 import PostList from '../components/posts/PostList'
 import FollowingFeedList from '../components/posts/FollowingFeedList'
 import Avatar from '../components/common/Avatar'
+import NewsWidget from '../components/news/NewsWidget'
+import SidebarFooter from '../components/layout/SidebarFooter'
 import { createPost } from '../features/posts/postsSlice'
 import { fetchAllUsers } from '../features/users/usersSlice'
 import { fetchFollowData } from '../features/follow/followSlice'
@@ -42,7 +44,10 @@ export default function FeedPage() {
       <Col lg={3} className="d-none d-lg-block">
         <div className="feed-sidebar">
           <Card className="shadow-sm text-center overflow-hidden">
-            <div className="profile-cover" />
+            <div
+              className="profile-cover"
+              style={currentUser.coverUrl ? { backgroundImage: `url(${currentUser.coverUrl})` } : undefined}
+            />
             <Card.Body>
               <Link to={`/profile/${currentUser.id}`} className="text-decoration-none text-dark">
                 <Avatar user={currentUser} size={72} className="mt-n5 mb-2 border border-3 border-white" />
@@ -79,15 +84,8 @@ export default function FeedPage() {
 
       <Col lg={3} className="d-none d-lg-block">
         <div className="feed-sidebar">
-          <Card className="shadow-sm">
-            <Card.Body>
-              <Card.Title className="h6">Novità della Build Week</Card.Title>
-              <Card.Text className="small text-secondary mb-0">
-                Questo è un progetto dimostrativo creato per il corso: un clone semplificato delle
-                funzionalità principali di LinkedIn (feed, profilo, esperienze).
-              </Card.Text>
-            </Card.Body>
-          </Card>
+          <NewsWidget />
+          <SidebarFooter />
         </div>
       </Col>
     </Row>
