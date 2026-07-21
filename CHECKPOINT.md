@@ -98,13 +98,13 @@ modifica/eliminazione post, like, commenti, modifica profilo, invio/
 modifica/eliminazione messaggi, logout — nessun errore in console, lint e
 build puliti.
 
-`server/db.json` contiene i dati demo iniziali **piu' quanto e' stato
-creato durante l'uso reale dell'app** (nuove registrazioni, post, commenti,
-conversazioni create dagli utenti). Questo e' normale e atteso per un
-backend mock: non e' un "seed" da preservare intatto, e' lo stato corrente
-del database di sviluppo. Se serve uno stato pulito per una demo, si puo'
-rigenerare `db.json` partendo dai 3 utenti demo e dai contenuti descritti
-nel README.
+`server/db.json` e' il database di sviluppo: muta a ogni richiesta (nuove
+registrazioni, post, commenti, conversazioni). Dal 2026-07-21 **non e' piu'
+tracciato in git** (vedi changelog) proprio perche' non e' un seed da
+preservare intatto — e' `server/db.seed.json` (tracciato) a contenere i
+dati demo iniziali; `server.js` copia il seed in `db.json` al primo avvio
+se il file manca. Per ripartire da uno stato pulito basta cancellare
+`server/db.json` locale e riavviare il server.
 
 ## Limiti noti (vedi anche README)
 
@@ -135,10 +135,15 @@ nel README.
 
 ## Changelog
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 3070ec9 (button e url foto sistemate)
+- **2026-07-21** — `main` allineato con `origin/main` (12 commit, PR #6..#10
+  dei collaboratori) e pulizia di marcatori di conflitto Git (`<<<<<<<`/
+  `=======`/`>>>>>>>`) rimasti in questo file da merge precedenti mal
+  risolti. Inoltre, `server/db.json` smette di essere tracciato in git:
+  causava conflitti a ogni commit perche' e' un database che muta a ogni
+  uso reale dell'app (ogni collaboratore ha dati locali diversi). Ora
+  `server/db.seed.json` e' il file tracciato con i dati demo iniziali,
+  `server/db.json` e' in `.gitignore`, e `server/server.js` copia il seed
+  in `db.json` al primo avvio se manca (vedi sezione sopra su db.json).
 - **2026-07-21** — Upload reale immagine profilo: `ProfileEditForm` sostituisce
   il campo URL testuale con `<input type="file">` (accetta immagini, max
   2MB) codificato in base64 e salvato come `avatarUrl` in `db.json`. Nel
@@ -170,13 +175,6 @@ nel README.
   di body e con un test di guardia (owner diverso -> 403 confermato
   invariato). `npm run server` / `npm run dev:all` restano gli stessi
   comandi, solo l'implementazione dietro `npm run server` e' cambiata.
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
-=======
->>>>>>> 3070ec9 (button e url foto sistemate)
-=======
 - **2026-07-21** — Fix contatore commenti "in ritardo" + indicatore
   messaggi non letti. Il numero sul bottone "Commenti" veniva letto solo
   dallo slice Redux dei commenti, popolato esclusivamente quando l'utente
@@ -199,7 +197,6 @@ nel README.
   Verificato in browser con due sessioni Playwright (Mario/Giulia): invio
   messaggio da una sessione, comparsa automatica del pallino rosso
   sull'altra entro un ciclo di polling, nessun errore console.
->>>>>>> origin/main
 - **2026-07-20** — Restyling grafico ispirato a LinkedIn ("inClone"): rebranding
   navbar/pagine auth, layout feed a 3 colonne (mini-profilo sticky + feed +
   card "Novità"), avatar di fallback con gradiente deterministico al posto

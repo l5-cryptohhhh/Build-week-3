@@ -84,7 +84,8 @@ Le regole di autorizzazione sono definite in `server/routes.json` (formato JSON 
 
 ```
 server/
-  db.json                 # dati demo
+  db.seed.json            # dati demo iniziali (tracciato in git)
+  db.json                 # database di sviluppo (gitignored, generato da db.seed.json al primo avvio)
   routes.json             # permessi JSON Server Auth
 src/
   api/                    # client HTTP + servizi (uno per risorsa)
