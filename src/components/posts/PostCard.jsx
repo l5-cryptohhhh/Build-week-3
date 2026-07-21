@@ -100,12 +100,16 @@ export default function PostCard({ post }) {
               {post.content}
             </Card.Text>
 <<<<<<< HEAD
+<<<<<<< HEAD
             {post.imageUrl && <PostLinkPreview url={post.imageUrl} />}
 =======
             {post.imageUrl && (
               <img src={post.imageUrl} alt="" className="img-fluid rounded mb-3 w-100" />
             )}
 >>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
+=======
+            {post.imageUrl && <PostLinkPreview url={post.imageUrl} />}
+>>>>>>> 3070ec9 (button e url foto sistemate)
           </>
         )}
 
