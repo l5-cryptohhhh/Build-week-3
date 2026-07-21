@@ -434,6 +434,14 @@
       "read": false,
       "createdAt": "2026-07-20T14:30:36.632Z",
       "id": 15
+    },
+    {
+      "conversationId": 1,
+      "userId": 2,
+      "content": "Messaggio realtime test 1784624986776",
+      "read": false,
+      "createdAt": "2026-07-21T09:09:46.793Z",
+      "id": 16
     }
   ]
 }

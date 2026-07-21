@@ -45,3 +45,23 @@ body {
   height: 80px;
   background: linear-gradient(120deg, #2563eb, #1e3a8a);
 }
+
+/* Indicatore conversazione con messaggi non letti */
+.conversation-row-unread {
+  background-color: #e7f3ff;
+}
+
+.conversation-row-unread:hover {
+  background-color: #d6ebff;
+}
+
+.unread-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #dc3545;
+  border: 2px solid #fff;
+}
