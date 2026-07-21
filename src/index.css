@@ -273,10 +273,18 @@ a {
 .avatar-gradient-4 { background: linear-gradient(135deg, #7048e8, #ae3ec9); }
 .avatar-gradient-5 { background: linear-gradient(135deg, #495057, #212529); }
 
-/* Feed layout: sticky side columns */
+/* Feed layout: sticky side columns. Altezza limitata + scroll interno
+   (invece di lasciar traboccare il contenuto sotto il viewport): senza
+   questo, con la sidebar sticky il contenuto in eccesso (es. il footer sotto
+   le 10 notizie espanse) finiva irraggiungibile, sempre coperto dal
+   MessengerWidget flottante in basso a destra (fixed, non si muove con lo
+   scroll). Il margine di 5.5rem in basso lascia spazio alla pillola del
+   widget messaggi. */
 .feed-sidebar {
   position: sticky;
   top: 5.5rem;
+  max-height: calc(100vh - 5.5rem - 5.5rem);
+  overflow-y: auto;
 }
 
 .profile-cover {

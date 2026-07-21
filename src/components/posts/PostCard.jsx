@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import Card from 'react-bootstrap/Card'
 import Dropdown from 'react-bootstrap/Dropdown'
@@ -8,10 +8,15 @@ import Avatar from '../common/Avatar'
 import UserHoverCard from '../common/UserHoverCard'
 import PostForm from './PostForm'
 import CommentList from '../comments/CommentList'
+import ShareMenu from './ShareMenu'
 import { selectUserById } from '../../features/users/usersSlice'
 import { selectCurrentUser } from '../../features/auth/authSlice'
 import { updatePost, deletePost, toggleLike, selectLikesForPost } from '../../features/posts/postsSlice'
-import { selectCommentsForPost } from '../../features/comments/commentsSlice'
+import {
+  fetchComments,
+  selectCommentsStatusForPost,
+  selectCommentsTotalForPost,
+} from '../../features/comments/commentsSlice'
 import { formatRelativeTime } from '../../utils/dateFormat'
 import { getLinkType, getYoutubeEmbedUrl } from '../../utils/linkPreview'
 import { requestConfirm } from '../../utils/confirm'
@@ -21,13 +26,23 @@ export default function PostCard({ post }) {
   const author = useSelector(selectUserById(post.userId))
   const currentUser = useSelector(selectCurrentUser)
   const likes = useSelector(selectLikesForPost(post.id))
-  const comments = useSelector(selectCommentsForPost(post.id))
+  const commentsTotal = useSelector(selectCommentsTotalForPost(post.id))
+  const commentsStatus = useSelector(selectCommentsStatusForPost(post.id))
   const [isEditing, setIsEditing] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [isPopping, setIsPopping] = useState(false)
 
   const isOwner = currentUser.id === post.userId
   const isLiked = likes.some((like) => like.userId === currentUser.id)
+
+  // Il conteggio commenti deve comparire anche prima di aprire la lista
+  // (come i like): si scarica la prima pagina di commenti al montaggio del
+  // post invece che solo all'apertura di CommentList.
+  useEffect(() => {
+    if (commentsStatus === 'idle') {
+      dispatch(fetchComments({ postId: post.id, page: 1 }))
+    }
+  }, [dispatch, post.id, commentsStatus])
 
   const handleUpdate = ({ content, imageUrl }) => {
     dispatch(
@@ -131,8 +146,9 @@ export default function PostCard({ post }) {
             onClick={() => setShowComments((prev) => !prev)}
           >
             <i className="bi bi-chat me-1"></i>
-            {comments.length > 0 ? comments.length : ''} Commenti
+            {commentsTotal} Commenti
           </button>
+          <ShareMenu post={post} />
         </div>
 
         {showComments && <CommentList postId={post.id} />}
