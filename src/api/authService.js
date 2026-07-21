@@ -1,5 +1,5 @@
 import httpClient, { saveToken, getToken, clearToken } from './httpClient'
-import { decodeJwtPayload } from '../utils/jwt'
+import { decodeJwtPayload, isTokenExpired } from '../utils/jwt'
 
 const USER_STORAGE_KEY = 'social_app_user'
 
@@ -59,6 +59,10 @@ export function restoreSession() {
   const token = getToken()
   const user = getStoredUser()
   if (token && user) {
+    if (isTokenExpired(token)) {
+      logout()
+      return null
+    }
     return { token, user }
   }
   return null
