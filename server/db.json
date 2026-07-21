@@ -286,6 +286,11 @@
       "postId": 10,
       "userId": 5,
       "id": 16
+    },
+    {
+      "postId": 13,
+      "userId": 6,
+      "id": 17
     }
   ],
   "conversations": [
@@ -312,6 +317,12 @@
       "participant2Id": 4,
       "createdAt": "2026-07-20T13:34:22.346Z",
       "id": 4
+    },
+    {
+      "participant1Id": 6,
+      "participant2Id": 5,
+      "createdAt": "2026-07-21T09:18:25.016Z",
+      "id": 5
     }
   ],
   "messages": [
@@ -434,6 +445,14 @@
       "read": false,
       "createdAt": "2026-07-20T14:30:36.632Z",
       "id": 15
+    },
+    {
+      "conversationId": 5,
+      "userId": 6,
+      "content": "Ciao",
+      "read": false,
+      "createdAt": "2026-07-21T09:18:37.084Z",
+      "id": 16
     }
   ]
 }
