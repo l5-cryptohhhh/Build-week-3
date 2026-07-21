@@ -193,6 +193,39 @@ nel README.
 
 ## Changelog
 
+- **2026-07-21** — Fix ai 3 problemi trovati con un audit degli stati Redux
+  (nessun cambio di shape, solo correttezza/perf). (1) `authSlice`: `logout`
+  chiamava `authService.logout()` (side effect, pulisce il token da
+  localStorage) dentro il body del reducer — spostato in un thunk
+  (`export function logout() { return (dispatch) => {...} }`), il reducer
+  puro ora si chiama `sessionCleared`; nessun cambio ai call site
+  (`dispatch(logout())` in `AppNavbar`/`App.jsx` resta identico). (2)
+  `postsSlice`: modificare o eliminare un post sincronizzava `items` e
+  `byUserId[userId]` ma non `followingFeed.items` (copia separata per la tab
+  "Chi segui") — aggiunta la stessa sincronizzazione li'. Per la copia
+  analoga in `search.posts.items` (slice diversa), invece di importare
+  `updatePost`/`deletePost` da `postsSlice.js` in `searchSlice.js` (avrebbe
+  creato un import circolare tra i due moduli: `postsSlice.js` importa gia'
+  `searchPosts` da `searchSlice.js`, e con `extraReducers` valutati a
+  module-load-time il ciclo rischia di leggere i thunk ancora `undefined` e
+  far crashare l'app all'avvio), si e' usato `builder.addMatcher` con un
+  controllo sulla stringa del tipo azione (`'posts/updatePost/fulfilled'` /
+  `'posts/deletePost/fulfilled'`), che non richiede nessun import dall'altro
+  modulo. (3) Selettori che restituivano un nuovo array ad ogni chiamata
+  (`selectLikesForPost`, `selectFollowingIds`/`selectFollowerIds`,
+  `selectPostsByUser`, `selectCommentsForPost`, `selectMessagesForConversation`)
+  causavano il warning di React-Redux "Selector returned a different result"
+  (visto dal vivo in console durante un test precedente) — invece di
+  riscrivere le selector con `createSelector`/reselect (che per selettori
+  parametrizzati per-id richiederebbe un refactor piu' ampio, con
+  `useMemo` per istanza a ogni call site), si e' passato `shallowEqual` di
+  `react-redux` come secondo argomento di `useSelector` nei call site
+  interessati (`PostCard`, `ProfilePage`, `CommentList`, `ConversationView`):
+  stessa semantica, fix piu' piccolo, warning sparito (verificato: 0
+  occorrenze in console dopo il fix, prima 1 per pagina profilo). Verificato
+  anche end-to-end con un post di prova: modificarlo aggiorna la copia in
+  cache nella tab risultati di ricerca senza dover rifare la ricerca. Lint e
+  build puliti.
 - **2026-07-21** — Follow-up al giro precedente: tetto di 10 notizie con
   toggle mostra/nascondi, sidebar con scroll interno, chiarito un falso
   allarme sul player YouTube. `NewsWidget` non pagina piu' all'infinito:

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch, useSelector, shallowEqual } from 'react-redux'
 import Card from 'react-bootstrap/Card'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Modal from 'react-bootstrap/Modal'
@@ -25,7 +25,7 @@ export default function PostCard({ post }) {
   const dispatch = useDispatch()
   const author = useSelector(selectUserById(post.userId))
   const currentUser = useSelector(selectCurrentUser)
-  const likes = useSelector(selectLikesForPost(post.id))
+  const likes = useSelector(selectLikesForPost(post.id), shallowEqual)
   const commentsTotal = useSelector(selectCommentsTotalForPost(post.id))
   const commentsStatus = useSelector(selectCommentsStatusForPost(post.id))
   const [isEditing, setIsEditing] = useState(false)

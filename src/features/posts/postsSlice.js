@@ -187,6 +187,14 @@ const postsSlice = createSlice({
         if (userIndex !== undefined && userIndex !== -1) {
           state.byUserId[userId][userIndex] = action.payload
         }
+        // Un post modificato puo' essere gia' in cache anche nel feed "Chi
+        // segui" (copia separata, non un riferimento a `items`): senza
+        // questo resterebbe la versione vecchia li' finche' non si rifa' il
+        // fetch.
+        const followingIndex = state.followingFeed.items.findIndex(
+          (post) => post.id === action.payload.id,
+        )
+        if (followingIndex !== -1) state.followingFeed.items[followingIndex] = action.payload
       })
       .addCase(deletePost.fulfilled, (state, action) => {
         state.items = state.items.filter((post) => post.id !== action.payload)
@@ -196,6 +204,9 @@ const postsSlice = createSlice({
             (post) => post.id !== action.payload,
           )
         })
+        state.followingFeed.items = state.followingFeed.items.filter(
+          (post) => post.id !== action.payload,
+        )
       })
       .addCase(toggleLike.fulfilled, (state, action) => {
         if (action.payload.liked) {

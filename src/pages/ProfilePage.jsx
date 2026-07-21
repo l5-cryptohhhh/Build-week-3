@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch, useSelector, shallowEqual } from 'react-redux'
 import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import ProfileCard from '../components/profile/ProfileCard'
@@ -49,15 +49,15 @@ export default function ProfilePage() {
   const profileUser = useSelector(selectUserById(userId))
   const usersStatus = useSelector(selectUsersStatus)
   const usersError = useSelector(selectUsersError)
-  const posts = useSelector(selectPostsByUser(userId))
+  const posts = useSelector(selectPostsByUser(userId), shallowEqual)
   const postsStatus = useSelector(selectPostsByUserStatus(userId))
   const conversations = useSelector(selectConversations)
   const followersCount = useSelector(selectFollowersCount(userId))
   const followingCount = useSelector(selectFollowingCount(userId))
   const isFollowing = useSelector(selectIsFollowing(currentUser.id, userId))
   const isOnline = useSelector(selectIsUserOnline(userId))
-  const followerIds = useSelector(selectFollowerIds(userId))
-  const followingIds = useSelector(selectFollowingIds(userId))
+  const followerIds = useSelector(selectFollowerIds(userId), shallowEqual)
+  const followingIds = useSelector(selectFollowingIds(userId), shallowEqual)
   const [showEditForm, setShowEditForm] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [followListMode, setFollowListMode] = useState(null)
