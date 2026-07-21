@@ -3,6 +3,9 @@ import Modal from 'react-bootstrap/Modal'
 import Form from 'react-bootstrap/Form'
 import Button from 'react-bootstrap/Button'
 import { isValidUsername } from '../../utils/validators'
+import Avatar from '../common/Avatar'
+
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024
 
 export default function ProfileEditForm({ show, user, onClose, onSave, isSaving }) {
   const [form, setForm] = useState({
@@ -17,6 +20,30 @@ export default function ProfileEditForm({ show, user, onClose, onSave, isSaving 
   const handleChange = (event) => {
     const { name, value } = event.target
     setForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleAvatarFileChange = (event) => {
+    const file = event.target.files[0]
+    event.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setError('Seleziona un file immagine valido.')
+      return
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setError("L'immagine supera la dimensione massima di 2MB.")
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      setError(null)
+      setForm((prev) => ({ ...prev, avatarUrl: reader.result }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveAvatar = () => {
+    setForm((prev) => ({ ...prev, avatarUrl: '' }))
   }
 
   const handleSubmit = (event) => {
@@ -62,17 +89,27 @@ export default function ProfileEditForm({ show, user, onClose, onSave, isSaving 
             <Form.Label>Bio</Form.Label>
             <Form.Control as="textarea" rows={3} name="bio" value={form.bio} onChange={handleChange} />
           </Form.Group>
-          <Form.Group className="mb-1" controlId="editAvatarUrl">
-            <Form.Label>URL immagine profilo (opzionale)</Form.Label>
-            <Form.Control
-              name="avatarUrl"
-              value={form.avatarUrl}
-              onChange={handleChange}
-              placeholder="https://..."
-            />
+          <Form.Group className="mb-1" controlId="editAvatarFile">
+            <Form.Label>Immagine profilo (opzionale)</Form.Label>
+            <div className="d-flex align-items-center gap-3 mb-2">
+              <Avatar user={{ ...form }} size={56} />
+              <div className="d-flex flex-column gap-1">
+                <Form.Control type="file" accept="image/*" onChange={handleAvatarFileChange} />
+                {form.avatarUrl && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="p-0 text-danger text-decoration-none align-self-start"
+                    type="button"
+                    onClick={handleRemoveAvatar}
+                  >
+                    Rimuovi immagine
+                  </Button>
+                )}
+              </div>
+            </div>
             <Form.Text className="text-secondary">
-              L&apos;upload reale delle immagini non e supportato in questa versione: incolla un
-              link diretto a un&apos;immagine.
+              Scegli un file dal tuo dispositivo (max 2MB). Verra salvato insieme al profilo.
             </Form.Text>
           </Form.Group>
         </Modal.Body>

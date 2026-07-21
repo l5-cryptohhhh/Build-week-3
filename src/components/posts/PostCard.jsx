@@ -11,6 +11,7 @@ import { selectCurrentUser } from '../../features/auth/authSlice'
 import { updatePost, deletePost, toggleLike, selectLikesForPost } from '../../features/posts/postsSlice'
 import { selectCommentsForPost } from '../../features/comments/commentsSlice'
 import { formatRelativeTime } from '../../utils/dateFormat'
+import { getLinkType, getYoutubeEmbedUrl } from '../../utils/linkPreview'
 
 export default function PostCard({ post }) {
   const dispatch = useDispatch()
@@ -98,9 +99,7 @@ export default function PostCard({ post }) {
             <Card.Text className="mb-3" style={{ whiteSpace: 'pre-wrap' }}>
               {post.content}
             </Card.Text>
-            {post.imageUrl && (
-              <img src={post.imageUrl} alt="" className="img-fluid rounded mb-3 w-100" />
-            )}
+            {post.imageUrl && <PostLinkPreview url={post.imageUrl} />}
           </>
         )}
 
@@ -126,5 +125,41 @@ export default function PostCard({ post }) {
         {showComments && <CommentList postId={post.id} />}
       </Card.Body>
     </Card>
+  )
+}
+
+function PostLinkPreview({ url }) {
+  const type = getLinkType(url)
+
+  if (type === 'image') {
+    return <img src={url} alt="" className="img-fluid rounded mb-3 w-100" />
+  }
+
+  if (type === 'video') {
+    return (
+      // eslint-disable-next-line jsx-a11y/media-has-caption
+      <video src={url} controls className="rounded mb-3 w-100" />
+    )
+  }
+
+  if (type === 'youtube') {
+    const embedUrl = getYoutubeEmbedUrl(url)
+    return (
+      <div className="ratio ratio-16x9 mb-3">
+        <iframe src={embedUrl} title="Video" allowFullScreen className="rounded"></iframe>
+      </div>
+    )
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="d-flex align-items-center gap-2 border rounded p-2 mb-3 text-decoration-none text-truncate"
+    >
+      <i className="bi bi-link-45deg fs-5"></i>
+      <span className="text-truncate">{url}</span>
+    </a>
   )
 }
