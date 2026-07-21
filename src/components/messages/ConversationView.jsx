@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch, useSelector, shallowEqual } from 'react-redux'
 import Button from 'react-bootstrap/Button'
 import LoadingSpinner from '../common/LoadingSpinner'
 import RowSkeleton from '../common/RowSkeleton'
@@ -34,7 +34,7 @@ import { requestConfirm } from '../../utils/confirm'
 export default function ConversationView({ conversationId, compact = false, onClose }) {
   const dispatch = useDispatch()
   const currentUser = useSelector(selectCurrentUser)
-  const messages = useSelector(selectMessagesForConversation(conversationId))
+  const messages = useSelector(selectMessagesForConversation(conversationId), shallowEqual)
   const status = useSelector(selectMessagesStatus)
   const page = useSelector(selectMessagesPageForConversation(conversationId))
   const totalCount = useSelector(selectMessagesTotalForConversation(conversationId))

@@ -75,6 +75,27 @@ const searchSlice = createSlice({
       .addCase(searchPosts.rejected, (state) => {
         state.posts.status = 'failed'
       })
+      // Ascolta le azioni di postsSlice per tipo (stringa), non importando i
+      // thunk direttamente: postsSlice.js importa gia' `searchPosts` da qui,
+      // un import nell'altro verso creerebbe un ciclo tra i due moduli (che
+      // con `extraReducers` valutati a module-load-time rischia di leggere
+      // `updatePost`/`deletePost` ancora `undefined`). Un post modificato o
+      // eliminato puo' essere gia' in cache anche nei risultati di ricerca
+      // (copia separata in `state.posts.items`), senza questo resterebbe la
+      // versione vecchia/cancellata finche' non si rifa' la ricerca.
+      .addMatcher(
+        (action) => action.type === 'posts/updatePost/fulfilled',
+        (state, action) => {
+          const index = state.posts.items.findIndex((post) => post.id === action.payload.id)
+          if (index !== -1) state.posts.items[index] = action.payload
+        },
+      )
+      .addMatcher(
+        (action) => action.type === 'posts/deletePost/fulfilled',
+        (state, action) => {
+          state.posts.items = state.posts.items.filter((post) => post.id !== action.payload)
+        },
+      )
   },
 })
 

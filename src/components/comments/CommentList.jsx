@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch, useSelector, shallowEqual } from 'react-redux'
 import Button from 'react-bootstrap/Button'
 import {
   fetchComments,
@@ -46,7 +46,7 @@ function CommentRow({ comment, currentUser, postId }) {
 
 export default function CommentList({ postId }) {
   const dispatch = useDispatch()
-  const comments = useSelector(selectCommentsForPost(postId))
+  const comments = useSelector(selectCommentsForPost(postId), shallowEqual)
   const status = useSelector(selectCommentsStatusForPost(postId))
   const page = useSelector(selectCommentsPageForPost(postId))
   const totalCount = useSelector(selectCommentsTotalForPost(postId))

@@ -40,8 +40,7 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    logout(state) {
-      authService.logout()
+    sessionCleared(state) {
       state.user = null
       state.token = null
       state.status = 'idle'
@@ -93,8 +92,19 @@ const authSlice = createSlice({
   },
 })
 
-export const { logout } = authSlice.actions
+export const { sessionCleared } = authSlice.actions
 export default authSlice.reducer
+
+// Thunk invece di un semplice action creator: `authService.logout()` e' un
+// side effect (pulisce il token da localStorage), non appartiene al body di
+// un reducer che deve restare puro. Firma di chiamata invariata per chi gia'
+// fa `dispatch(logout())` (AppNavbar, listener 'auth:expired' in App.jsx).
+export function logout() {
+  return (dispatch) => {
+    authService.logout()
+    dispatch(sessionCleared())
+  }
+}
 
 export const selectCurrentUser = (state) => state.auth.user
 export const selectAuthToken = (state) => state.auth.token
