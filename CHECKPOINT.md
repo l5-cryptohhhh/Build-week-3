@@ -207,3 +207,25 @@ nel README.
   like, messaggistica privata con CRUD completo, stati loading/errore/
   vuoto, autorizzazioni client-side. Verificato con test end-to-end in
   browser headless. Lint e build puliti. Creato questo file di checkpoint.
+- **2026-07-21** — Risolto un conflitto di merge su `server/db.seed.json`
+  durante l'allineamento del branch locale con `origin/main`. Causa: sia il
+  branch locale che `origin/main` avevano aggiunto in locale un proprio
+  utente di test riusando lo stesso id auto-incrementale gia' occupato da
+  un utente demo esistente sull'altro lato (`mark97`/`ocram01` in locale
+  contro `manuelnunziata_`/`SaltyGhosty` su `origin/main`, entrambi id 5 e
+  6) — pattern gia' presente anche a monte in `origin/main` stesso (li'
+  `mark97` e `manuel` condividevano gia' l'id 5), segno che questa
+  collisione si autoalimenta ad ogni merge perche' ciascun collaboratore
+  ha uno stato runtime locale diverso finito nel seed tracciato. Risolto
+  manualmente confrontando le tre versioni (base comune, locale, remota)
+  e riassegnando id univoci a tutti gli utenti/post/commenti/like/
+  conversazioni/messaggi coinvolti, cosi' da conservare i dati di tutti e
+  quattro gli utenti (nessuno scartato) invece di lasciare che il merge
+  automatico di Git ne facesse sparire silenziosamente uno (come gia'
+  successo in precedenza a `SaltyGhosty`, assente nel file prima di
+  questo fix). Validato con uno script Node ad-hoc che verifica assenza
+  di id duplicati per collezione e di riferimenti a chiavi esterne
+  inesistenti. Nessun cambiamento di schema. Per evitare che il problema
+  si ripresenti: evitare di committare `server/db.seed.json` dopo sessioni
+  di test locali con account personali — e' pensato per restare stabile
+  (vedi sezione su `db.json` sopra).
