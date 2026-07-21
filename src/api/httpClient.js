@@ -24,6 +24,11 @@ httpClient.interceptors.response.use(
       data?.message ||
       error.message ||
       'Si e verificato un errore imprevisto.'
+
+    if (error.response?.status === 401) {
+      window.dispatchEvent(new CustomEvent('auth:expired'))
+    }
+
     return Promise.reject(new Error(message))
   },
 )
