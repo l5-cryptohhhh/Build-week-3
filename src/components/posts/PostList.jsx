@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import Button from 'react-bootstrap/Button'
 import PostCard from './PostCard'
-import LoadingSpinner from '../common/LoadingSpinner'
+import PostCardSkeleton from './PostCardSkeleton'
 import ErrorAlert from '../common/ErrorAlert'
 import EmptyState from '../common/EmptyState'
 import {
@@ -33,7 +33,13 @@ export default function PostList() {
   }
 
   if (status === 'loading' && posts.length === 0) {
-    return <LoadingSpinner label="Caricamento post..." />
+    return (
+      <div>
+        <PostCardSkeleton />
+        <PostCardSkeleton />
+        <PostCardSkeleton />
+      </div>
+    )
   }
 
   if (status === 'failed' && posts.length === 0) {

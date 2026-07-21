@@ -89,6 +89,42 @@ fatte cosi', non su *cosa* fanno (quello lo spiega gia' il codice/README).
   `db.json` con base64 su ogni post. `PostCard` sceglie il rendering in
   base al tipo di link (`utils/linkPreview.js`): estensione immagine,
   estensione video, URL YouTube, o fallback a card-link cliccabile.
+- **`socket.io` (non `ws` grezzo) per realtime**: agganciato sullo stesso
+  `http.Server` di `server/server.js` (che ora lo espone esplicitamente
+  invece di lasciarlo implicito in `server.listen()`), non un processo
+  separato. Scelto per riconnessione automatica e gestione errori "gratis"
+  lato client, requisiti espliciti del task. Autenticazione dei socket
+  riusa lo stesso JWT/secret di JSON Server Auth (`socket.handshake.auth.token`
+  verificato con lo stesso `JWT_SECRET_KEY` — vedi `server/realtime.js`),
+  cosi' non serve un secondo sistema di login per i WebSocket.
+- **Eventi realtime e notifiche via `router.render`** (`server/realtime.js`),
+  non middleware separati: json-server espone ufficialmente questo hook per
+  intercettare la risposta subito dopo che il router ha gia' eseguito la
+  scrittura, cosi' si riusa la logica di CRUD/validazione/autorizzazione
+  gia' presente invece di duplicarla. Attenzione: json-server esegue una
+  scansione cascade-delete su ogni campo `*Id` in tutte le collection
+  (`getRemovable` in `json-server/lib/server/mixins.js`) e va in crash se
+  trova un valore `null` — per questo i campi opzionali di `notifications`
+  (`postId`/`conversationId`) vengono omessi invece di essere impostati a
+  `null` quando non applicabili.
+- **Collection `notifications` a permesso `640`** (owner-only), a differenza
+  di `messages`/`conversations`: qui `userId` rappresenta correttamente il
+  destinatario, quindi il modello di ownership di JSON Server Auth calza
+  senza bisogno del workaround a `660` usato altrove.
+- **Paginazione messaggi in ordine invertito**: a differenza di post/commenti
+  (pagina 1 = piu' vecchi, si accoda), una chat mostra prima i messaggi piu'
+  recenti — `messagesService.fetchMessages` interroga `_order=desc` (pagina
+  1 = ultimi N) e inverte l'ordine lato client; le pagine successive
+  ("carica precedenti") vengono anteposte, non accodate, con lo scroll
+  ripristinato manualmente per non far saltare la vista.
+- **Ricerca senza nuova collection/endpoint dedicato**: riusa la full-text
+  search integrata di json-server (`?q=`) gia' disponibile su ogni
+  collection, combinata con `_page`/`_limit` gia' in uso per i post. I
+  risultati di ricerca post vivono in uno slice `search` separato ma i
+  relativi `likes` vengono comunque fusi in `state.posts.likes` (stesso
+  meccanismo di `fetchPostsByUser`), altrimenti `PostCard` (che legge sempre
+  da li') mostrerebbe conteggi a zero e rischierebbe di duplicare i like sul
+  toggle.
 
 ## Stato attuale
 
@@ -109,25 +145,65 @@ nel README.
 ## Limiti noti (vedi anche README)
 
 - Upload reale solo per avatar profilo e media dei post (foto/video), via
-  base64 in `db.json` — nessun object storage dedicato, nessun WebSocket,
-  nessuna notifica push/OAuth/pagamenti (fuori scope dichiarato).
+  base64 in `db.json` — nessun object storage dedicato, nessun
+  OAuth/pagamenti (fuori scope dichiarato).
 - `json-server-auth` non mantenuto: dipende da una versione vulnerabile di
   `jsonwebtoken` senza fix disponibile (`npm audit`). Accettabile perche'
-  e' solo un mock locale.
+  e' solo un mock locale. Lo stesso secret hardcoded viene ora riusato anche
+  per autenticare i WebSocket (vedi sopra) — stesso rischio accettato, non
+  nuovo.
 - Autorizzazione su `messages`/`conversations` enforced solo lato client
-  (vedi sopra) — da rivedere se si passa a un backend reale.
-- Nessuna modifica ai commenti (solo creazione/eliminazione).
+  (vedi sopra) — da rivedere se si passa a un backend reale. Le notifiche
+  invece hanno autorizzazione reale lato server (`640`, owner-only).
+- CORS del WebSocket aperto a `origin: '*'` (`server/server.js`), coerente
+  col CORS gia' permissivo di json-server di default — nessun cambio di
+  postura, ma da restringere se si passa a un deployment reale.
+- `GET /users` (usato da profilo, elenco conversazioni e ora anche dalla
+  ricerca utenti) restituisce anche l'hash della password di ogni utente —
+  limite preesistente di json-server (non filtra i campi), la ricerca lo
+  rende solo piu' visibile. Non risolto in questo giro.
+- Le notifiche di commento/mi-piace aprono la home (non esiste ancora una
+  rotta di dettaglio del singolo post da linkare).
 
 ## Prossimi passi possibili
 
 - Upload reale immagini (profilo/post) con storage dedicato.
-- Messaggi in tempo reale (WebSocket) al posto del polling manuale.
-- Notifiche push per messaggi/commenti/like.
-- Ricerca utenti/post, paginazione anche su commenti e messaggi.
 - Backend reale con autorizzazione a grana fine per conversazioni private.
+- Rotta di dettaglio del singolo post (per linkare le notifiche di
+  commento/mi-piace al post esatto invece che alla home).
+- Escludere l'hash password dalla risposta di `GET /users` (vedi limiti
+  noti) — stessa infrastruttura di `router.render` gia' introdotta per le
+  notifiche puo' essere riusata per questo.
 
 ## Changelog
 
+- **2026-07-21** — Messaggistica realtime, notifiche, ricerca+paginazione,
+  modifica commenti (le 4 milestone "prossimi passi" della voce precedente,
+  ora implementate). Backend: `server/server.js` espone esplicitamente
+  l'`http.Server` per agganciarci `socket.io`; nuovo `server/realtime.js`
+  autentica i socket con lo stesso JWT di JSON Server Auth e usa
+  `router.render` (hook ufficiale di json-server) per emettere
+  `message:new/updated/deleted`, `conversation:new` e per creare righe nella
+  nuova collection `notifications` (permesso `640`) su nuovo commento/like/
+  messaggio, con relativo evento `notification:new`. Scoperto e corretto un
+  bug di json-server (`getRemovable` va in crash su valori `null` in campi
+  `*Id` durante il cascade-delete) omettendo le chiavi non applicabili
+  invece di impostarle a `null`. Frontend: nuovo `src/socket.js` (client
+  singleton, connesso/disconnesso in `App.jsx` in base allo stato di auth),
+  `useConversationSocket` sostituisce la necessita' di polling (il vecchio
+  `src/hooks/useInterval.js` non era comunque mai stato collegato a nulla —
+  rimosso come dead code), nuovo slice `notifications` +
+  `NotificationBell` in navbar, nuovo slice `search` con pagina dedicata
+  `/search` (utenti + post, riusando `?q=` di json-server e il pattern di
+  paginazione gia' in `postsSlice`), paginazione aggiunta a commenti
+  (`commentsSlice`) e messaggi (`messagesSlice`, con ordine invertito e
+  scroll preservato — vedi sopra), modifica commenti replicando 1:1 il
+  pattern gia' esistente per la modifica messaggi (`editMessage`/
+  `MessageBubble` → `editComment`/`CommentItem`). Verificato con script di
+  smoke-test end-to-end reali (login, socket, notifiche incrociate tra due
+  utenti, CRUD paginato, cleanup dati di test) — non e' stato possibile
+  eseguire anche un test in browser reale in questa sessione (nessun tool
+  di automazione browser disponibile); lint e build restano puliti.
 - **2026-07-21** — Upload reale immagine profilo: `ProfileEditForm` sostituisce
   il campo URL testuale con `<input type="file">` (accetta immagini, max
   2MB) codificato in base64 e salvato come `avatarUrl` in `db.json`. Nel

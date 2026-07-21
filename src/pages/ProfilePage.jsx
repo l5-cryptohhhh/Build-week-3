@@ -5,6 +5,7 @@ import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import ProfileCard from '../components/profile/ProfileCard'
 import ProfileEditForm from '../components/profile/ProfileEditForm'
+import FollowListModal from '../components/profile/FollowListModal'
 import PostCard from '../components/posts/PostCard'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
@@ -28,6 +29,16 @@ import {
   startConversation,
   selectConversations,
 } from '../features/messages/messagesSlice'
+import {
+  fetchFollowData,
+  toggleFollow,
+  selectFollowersCount,
+  selectFollowingCount,
+  selectIsFollowing,
+  selectFollowerIds,
+  selectFollowingIds,
+} from '../features/follow/followSlice'
+import { selectIsUserOnline } from '../features/presence/presenceSlice'
 
 export default function ProfilePage() {
   const { id } = useParams()
@@ -41,17 +52,29 @@ export default function ProfilePage() {
   const posts = useSelector(selectPostsByUser(userId))
   const postsStatus = useSelector(selectPostsByUserStatus(userId))
   const conversations = useSelector(selectConversations)
+  const followersCount = useSelector(selectFollowersCount(userId))
+  const followingCount = useSelector(selectFollowingCount(userId))
+  const isFollowing = useSelector(selectIsFollowing(currentUser.id, userId))
+  const isOnline = useSelector(selectIsUserOnline(userId))
+  const followerIds = useSelector(selectFollowerIds(userId))
+  const followingIds = useSelector(selectFollowingIds(userId))
   const [showEditForm, setShowEditForm] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [followListMode, setFollowListMode] = useState(null)
 
   useEffect(() => {
     dispatch(fetchUserById(userId))
     dispatch(fetchAllUsers())
     dispatch(fetchPostsByUser(userId))
     dispatch(fetchConversations(currentUser.id))
+    dispatch(fetchFollowData(userId))
   }, [dispatch, userId, currentUser.id])
 
   const isOwnProfile = currentUser.id === userId
+
+  const handleToggleFollow = () => {
+    dispatch(toggleFollow({ followerId: currentUser.id, followingId: userId }))
+  }
 
   const handleSaveProfile = async (changes) => {
     setIsSaving(true)
@@ -92,8 +115,22 @@ export default function ProfilePage() {
         <ProfileCard
           user={profileUser}
           isOwnProfile={isOwnProfile}
+          isOnline={isOnline}
+          followersCount={followersCount}
+          followingCount={followingCount}
+          isFollowing={isFollowing}
           onEdit={() => setShowEditForm(true)}
           onMessage={handleMessage}
+          onToggleFollow={handleToggleFollow}
+          onShowFollowers={() => setFollowListMode('followers')}
+          onShowFollowing={() => setFollowListMode('following')}
+        />
+
+        <FollowListModal
+          show={followListMode !== null}
+          onClose={() => setFollowListMode(null)}
+          title={followListMode === 'followers' ? 'Follower' : 'Seguiti'}
+          userIds={followListMode === 'followers' ? followerIds : followingIds}
         />
 
         <h2 className="h5 mb-3">Post di {profileUser.fullName}</h2>

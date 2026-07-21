@@ -9,6 +9,7 @@ Social network didattico: registrazione/login, feed con post e commenti, like, p
 - Redux Toolkit 2 + React Redux 9
 - React Bootstrap 2 + Bootstrap 5 + Bootstrap Icons
 - Axios
+- Socket.IO (client + server) per messaggistica/notifiche in tempo reale
 - JSON Server 0.17 + JSON Server Auth 2.1 (backend mock con JWT)
 - oxlint (linting)
 
@@ -72,32 +73,47 @@ Base URL: `http://localhost:3001`
 | POST | `/register` | crea utente + ritorna `accessToken` |
 | POST | `/login` | ritorna `accessToken` + `user` |
 | GET/PATCH | `/users/:id` | lettura per utenti loggati, scrittura solo dal proprietario |
-| GET/POST/PATCH/DELETE | `/posts` | scrittura solo dall'autore; supporta `?userId=`, `?_page=&_limit=&_sort=&_order=` |
-| GET/POST/DELETE | `/comments` | scrittura/cancellazione solo dall'autore del commento; `?postId=` |
-| GET/POST/DELETE | `/likes` | un record per (postId, userId) |
+| GET | `/users?q=&_page=&_limit=` | ricerca full-text (nome, username, ...) |
+| GET/POST/PATCH/DELETE | `/posts` | scrittura solo dall'autore; supporta `?userId=`, `?q=`, `?_page=&_limit=&_sort=&_order=` |
+| GET/POST/PATCH/DELETE | `/comments` | scrittura/cancellazione solo dall'autore; `?postId=`, `?_page=&_limit=` |
+| GET/POST/DELETE | `/likes` | un record per (postId, userId); crea una notifica per l'autore del post |
 | GET/POST | `/conversations` | `?participant1Id=`, `?participant2Id=` |
-| GET/POST/PATCH/DELETE | `/messages` | `?conversationId=`; il campo `userId` rappresenta il mittente |
+| GET/POST/PATCH/DELETE | `/messages` | `?conversationId=`, `?_page=&_limit=`; il campo `userId` rappresenta il mittente |
+| GET/PATCH | `/notifications` | `?userId=`; solo il destinatario puo' leggerle/segnarle come lette |
 
 Le regole di autorizzazione sono definite in `server/routes.json` (formato JSON Server Auth, notazione tipo Unix `rwx`).
+
+### WebSocket (Socket.IO)
+
+Stesso host/porta del backend mock (`server/server.js` espone un unico
+`http.Server` condiviso tra REST e Socket.IO). Handshake autenticato con lo
+stesso JWT del login (`auth: { token }`); alla connessione ogni client entra
+nella room `user:<id>` e riceve solo eventi diretti a lui. Eventi emessi dal
+server (vedi `server/realtime.js`): `message:new`, `message:updated`,
+`message:deleted`, `conversation:new`, `notification:new`.
 
 ## Struttura del progetto
 
 ```
 server/
-  db.json                 # dati demo
+  db.json                 # dati demo + stato runtime
   routes.json             # permessi JSON Server Auth
+  server.js               # bootstrap Express + Socket.IO
+  realtime.js             # eventi realtime e notifiche (hook router.render)
 src/
+  socket.js               # client Socket.IO singleton
   api/                    # client HTTP + servizi (uno per risorsa)
   app/store.js            # configurazione store Redux
-  features/               # slice Redux (auth, posts, comments, users, messages)
+  features/               # slice Redux (auth, posts, comments, users, messages, notifications, search)
   routes/                 # AppRouter, ProtectedRoute, PublicRoute
   components/
     layout/                # AppNavbar, MainLayout
     common/                # LoadingSpinner, ErrorAlert, EmptyState, Avatar
-    posts/, comments/, messages/, profile/
-  pages/                  # Login, Register, Feed, Profile, Messages, NotFound
+    posts/, comments/, messages/, profile/, notifications/, search/
+  pages/                  # Login, Register, Feed, Profile, Messages, Search, NotFound
+  hooks/                  # useConversationSocket, useDebounce
   utils/                  # validators, formattazione date, decodifica JWT
-  App.jsx                 # componente radice (Redux Provider + Router)
+  App.jsx                 # componente radice (Redux Provider + Router + ciclo di vita socket)
   main.jsx                # bootstrap tecnico (mount su #root)
 ```
 
@@ -108,25 +124,23 @@ src/
 - Layout con navbar responsive
 - Profilo utente: visualizzazione e modifica (nome, username, bio, URL avatar)
 - Feed con paginazione, creazione/modifica/eliminazione post, like
-- Commenti sui post (creazione e cancellazione da parte dell'autore)
-- Conversazioni private e messaggi (creazione, modifica, eliminazione, stato letto/non letto)
+- Commenti sui post (creazione, modifica ed eliminazione da parte dell'autore) con paginazione
+- Conversazioni private e messaggi in tempo reale via WebSocket (creazione, modifica, eliminazione, stato letto/non letto, riconnessione automatica), con paginazione dei messaggi piu' vecchi
+- Notifiche in tempo reale per nuovi messaggi, commenti e "mi piace", con badge contatore in navbar
+- Ricerca utenti e post (risultati parziali, paginati)
 - Stati di caricamento, errore e vuoto su ogni schermata con fetch
 - Controlli di autorizzazione lato client (pulsanti di modifica/eliminazione visibili solo al proprietario; accesso a una conversazione altrui via URL bloccato)
 
 ## Limiti noti
 
-- **Upload immagini reale non supportato**: gli avatar si impostano incollando un URL diretto a un'immagine; senza URL viene mostrato un placeholder con le iniziali.
-- **Nessun WebSocket**: i messaggi non arrivano in tempo reale, solo al refresh/nuova richiesta.
-- **Nessuna notifica push, OAuth o sistema di pagamento** (fuori scope).
-- **`json-server-auth` non mantenuto attivamente**: dipende da una versione datata di `jsonwebtoken` con una vulnerabilita' nota senza fix disponibile (visibile con `npm audit`). Accettabile perche' il backend e' solo un mock locale, mai esposto in produzione.
-- **Permessi del backend mock limitati**: JSON Server Auth riconosce la proprieta' di una risorsa solo tramite un campo `userId`. Per `conversations` (che ha due partecipanti) e per la lettura dei `messages`, l'autorizzazione "solo i partecipanti possono vedere/scrivere" e' applicata lato client (nel componente `ConversationView`), non dal backend: chiamate dirette alle API bypassando la UI potrebbero in teoria leggere conversazioni altrui. Accettabile per un mock di sviluppo, da rivedere con un backend reale.
-- Nessuna modifica ai commenti (solo creazione ed eliminazione).
+- **Upload immagini reale non supportato per i post**: solo l'avatar profilo supporta upload reale (`<input type="file">`, max 2MB, salvato come data URL). I post usano ancora un campo URL testuale generico (immagine/video/link).
+- **Nessuna notifica push del sistema operativo, OAuth o sistema di pagamento** (fuori scope): le "notifiche" sono realtime in-app via WebSocket, non push del browser/OS.
+- **`json-server-auth` non mantenuto attivamente**: dipende da una versione datata di `jsonwebtoken` con una vulnerabilita' nota senza fix disponibile (visibile con `npm audit`). Accettabile perche' il backend e' solo un mock locale, mai esposto in produzione. Lo stesso secret viene riusato per autenticare i WebSocket.
+- **Permessi del backend mock limitati**: JSON Server Auth riconosce la proprieta' di una risorsa solo tramite un campo `userId`. Per `conversations` (che ha due partecipanti) e per la lettura dei `messages`, l'autorizzazione "solo i partecipanti possono vedere/scrivere" e' applicata lato client (nel componente `ConversationView`), non dal backend: chiamate dirette alle API bypassando la UI potrebbero in teoria leggere conversazioni altrui. Accettabile per un mock di sviluppo, da rivedere con un backend reale. Le `notifications` invece hanno autorizzazione reale lato server (owner-only).
+- `GET /users` (usato anche dalla ricerca) restituisce anche l'hash della password di ogni utente — limite di json-server, non filtrato.
 
 ## Possibili miglioramenti futuri
 
-- Upload reale delle immagini (profilo e post) con storage dedicato
-- Messaggi in tempo reale via WebSocket
-- Notifiche push per nuovi messaggi/commenti/like
-- Paginazione/scroll infinito anche per commenti e messaggi
-- Ricerca utenti e post
+- Upload reale delle immagini nei post (oggi solo l'avatar profilo lo supporta) con storage dedicato
+- Rotta di dettaglio del singolo post, per linkare le notifiche di commento/mi-piace al post esatto
 - Backend reale con autorizzazione a grana fine (es. Postgres + policy per conversazione)

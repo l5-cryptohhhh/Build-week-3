@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url'
 import express from 'express'
 import jsonServer from 'json-server'
 import auth from 'json-server-auth'
+import { Server } from 'socket.io'
+import { authenticateSocket, attachRealtime } from './realtime.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const dbPath = path.join(__dirname, 'db.json')
@@ -26,13 +28,19 @@ const server = jsonServer.create()
 const router = jsonServer.router(dbPath)
 server.db = router.db
 
+// Serve l'istanza http.Server esplicita (server.listen() la crea comunque
+// internamente, ma non la esponeva) per potervi agganciare socket.io sulla
+// stessa porta/processo, invece di aprire un secondo server.
+const httpServer = server.listen(port, () => {
+  console.log(`JSON Server (custom, body limit ${BODY_LIMIT}) is running on port ${port}`)
+})
+const io = new Server(httpServer, { cors: { origin: '*' } })
+authenticateSocket(io)
+
 server.use(jsonServer.defaults({ bodyParser: false }))
 server.use(express.json({ limit: BODY_LIMIT }))
 server.use(express.urlencoded({ extended: false, limit: BODY_LIMIT }))
 server.use(auth.rewriter(routes))
 server.use(auth)
+attachRealtime(server, router, io)
 server.use(router)
-
-server.listen(port, () => {
-  console.log(`JSON Server (custom, body limit ${BODY_LIMIT}) is running on port ${port}`)
-})
