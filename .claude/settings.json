@@ -23,7 +23,14 @@
       "Bash(powershell -NoProfile -Command \"Get-CimInstance Win32_Process -Filter 'ProcessId=21560' | Select-Object -ExpandProperty CommandLine\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3001/posts)",
       "Bash(powershell -NoProfile -Command \"Get-Process -Id 16360 | Select-Object Id,ProcessName,Path\")",
-      "Bash(powershell -NoProfile -Command \"Stop-Process -Id 16360 -Force\")"
+      "Bash(powershell -NoProfile -Command \"Stop-Process -Id 16360 -Force\")",
+      "Bash(echo \"EXIT CODE: $?\")",
+      "Read(//c/Users/MARK0/.claude/**)",
+      "Read(//c//**)",
+      "Bash(npm ls *)",
+      "Bash(npx --no-install playwright --version)",
+      "Bash(node -e \"console.log\\(require.resolve\\('playwright'\\)\\)\")",
+      "Bash(node -e ' *)"
     ]
   }
 }

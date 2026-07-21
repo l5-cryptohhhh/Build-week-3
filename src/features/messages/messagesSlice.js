@@ -35,6 +35,18 @@ export const fetchMessages = createAsyncThunk(
   },
 )
 
+export const fetchUnreadCounts = createAsyncThunk(
+  'messages/fetchUnreadCounts',
+  async ({ conversationIds, userId }, { rejectWithValue }) => {
+    try {
+      const unreadMessages = await messagesService.fetchUnreadMessages(conversationIds, userId)
+      return { conversationIds, unreadMessages }
+    } catch (err) {
+      return rejectWithValue(err.message)
+    }
+  },
+)
+
 export const sendMessage = createAsyncThunk(
   'messages/sendMessage',
   async ({ conversationId, userId, content }, { rejectWithValue }) => {
@@ -91,6 +103,7 @@ const initialState = {
   conversationsStatus: 'idle',
   messagesByConversationId: {},
   messagesStatus: 'idle',
+  unreadByConversationId: {},
   error: null,
 }
 
@@ -137,6 +150,22 @@ const messagesSlice = createSlice({
           const index = list.findIndex((message) => message.id === action.payload.id)
           if (index !== -1) list[index] = action.payload
         }
+        const conversationId = action.payload.conversationId
+        if (state.unreadByConversationId[conversationId]) {
+          state.unreadByConversationId[conversationId] = Math.max(
+            0,
+            state.unreadByConversationId[conversationId] - 1,
+          )
+        }
+      })
+      .addCase(fetchUnreadCounts.fulfilled, (state, action) => {
+        action.payload.conversationIds.forEach((conversationId) => {
+          state.unreadByConversationId[conversationId] = 0
+        })
+        action.payload.unreadMessages.forEach((message) => {
+          state.unreadByConversationId[message.conversationId] =
+            (state.unreadByConversationId[message.conversationId] || 0) + 1
+        })
       })
       .addCase(editMessage.fulfilled, (state, action) => {
         const list = state.messagesByConversationId[action.payload.conversationId]
@@ -163,3 +192,7 @@ export const selectConversationsStatus = (state) => state.messages.conversations
 export const selectMessagesForConversation = (conversationId) => (state) =>
   state.messages.messagesByConversationId[conversationId] || []
 export const selectMessagesStatus = (state) => state.messages.messagesStatus
+export const selectUnreadCountForConversation = (conversationId) => (state) =>
+  state.messages.unreadByConversationId[conversationId] || 0
+export const selectTotalUnreadCount = (state) =>
+  Object.values(state.messages.unreadByConversationId).reduce((sum, count) => sum + count, 0)

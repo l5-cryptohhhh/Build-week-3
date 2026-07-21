@@ -5,6 +5,7 @@ import ErrorAlert from '../common/ErrorAlert'
 import EmptyState from '../common/EmptyState'
 import MessageBubble from './MessageBubble'
 import MessageForm from './MessageForm'
+import useInterval from '../../hooks/useInterval'
 import {
   fetchMessages,
   sendMessage,
@@ -18,6 +19,8 @@ import {
 } from '../../features/messages/messagesSlice'
 import { selectUserById } from '../../features/users/usersSlice'
 import { selectCurrentUser } from '../../features/auth/authSlice'
+
+const MESSAGES_POLL_INTERVAL_MS = 4000
 
 export default function ConversationView({ conversationId }) {
   const dispatch = useDispatch()
@@ -44,6 +47,13 @@ export default function ConversationView({ conversationId }) {
       dispatch(fetchMessages(conversationId))
     }
   }, [dispatch, conversationId, conversation])
+
+  useInterval(
+    () => {
+      if (conversation) dispatch(fetchMessages(conversationId))
+    },
+    conversation ? MESSAGES_POLL_INTERVAL_MS : null,
+  )
 
   useEffect(() => {
     messages
