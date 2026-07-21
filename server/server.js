@@ -7,8 +7,16 @@ import auth from 'json-server-auth'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const dbPath = path.join(__dirname, 'db.json')
+const seedPath = path.join(__dirname, 'db.seed.json')
 const routesPath = path.join(__dirname, 'routes.json')
 const port = process.env.PORT || 3001
+
+// db.json is the local dev database: it mutates on every request (new users,
+// posts, comments...) and is gitignored so those mutations never conflict
+// between collaborators. db.seed.json is the tracked starting point.
+if (!fs.existsSync(dbPath)) {
+  fs.copyFileSync(seedPath, dbPath)
+}
 
 // json-server's own body-parser and json-server-auth's guard body-parser are
 // both hardcoded to a 10MB limit (not configurable via CLI flags), which is

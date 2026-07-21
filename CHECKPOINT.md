@@ -98,13 +98,13 @@ modifica/eliminazione post, like, commenti, modifica profilo, invio/
 modifica/eliminazione messaggi, logout — nessun errore in console, lint e
 build puliti.
 
-`server/db.json` contiene i dati demo iniziali **piu' quanto e' stato
-creato durante l'uso reale dell'app** (nuove registrazioni, post, commenti,
-conversazioni create dagli utenti). Questo e' normale e atteso per un
-backend mock: non e' un "seed" da preservare intatto, e' lo stato corrente
-del database di sviluppo. Se serve uno stato pulito per una demo, si puo'
-rigenerare `db.json` partendo dai 3 utenti demo e dai contenuti descritti
-nel README.
+`server/db.json` e' il database di sviluppo: muta a ogni richiesta (nuove
+registrazioni, post, commenti, conversazioni). Dal 2026-07-21 **non e' piu'
+tracciato in git** (vedi changelog) proprio perche' non e' un seed da
+preservare intatto — e' `server/db.seed.json` (tracciato) a contenere i
+dati demo iniziali; `server.js` copia il seed in `db.json` al primo avvio
+se il file manca. Per ripartire da uno stato pulito basta cancellare
+`server/db.json` locale e riavviare il server.
 
 ## Limiti noti (vedi anche README)
 
@@ -135,6 +135,15 @@ nel README.
 
 ## Changelog
 
+- **2026-07-21** — `main` allineato con `origin/main` (12 commit, PR #6..#10
+  dei collaboratori) e pulizia di marcatori di conflitto Git (`<<<<<<<`/
+  `=======`/`>>>>>>>`) rimasti in questo file da merge precedenti mal
+  risolti. Inoltre, `server/db.json` smette di essere tracciato in git:
+  causava conflitti a ogni commit perche' e' un database che muta a ogni
+  uso reale dell'app (ogni collaboratore ha dati locali diversi). Ora
+  `server/db.seed.json` e' il file tracciato con i dati demo iniziali,
+  `server/db.json` e' in `.gitignore`, e `server/server.js` copia il seed
+  in `db.json` al primo avvio se manca (vedi sezione sopra su db.json).
 - **2026-07-21** — Upload reale immagine profilo: `ProfileEditForm` sostituisce
   il campo URL testuale con `<input type="file">` (accetta immagini, max
   2MB) codificato in base64 e salvato come `avatarUrl` in `db.json`. Nel
