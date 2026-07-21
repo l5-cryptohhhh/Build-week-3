@@ -80,9 +80,15 @@ fatte cosi', non su *cosa* fanno (quello lo spiega gia' il codice/README).
   "accesso non autorizzato" invece di scaricare comunque i messaggi. Senza
   questo controllo, digitare `/messages/<id>` di una conversazione altrui
   avrebbe comunque mostrato i messaggi, dato il permesso `660` sopra.
-- **Niente upload reale di immagini**: il campo avatar/immagine e' un
-  semplice URL testuale (con fallback a iniziali colorate se vuoto). Scelta
-  esplicitamente fuori scope fin dalla fase di design.
+- **Upload reale solo per l'avatar profilo, non per i post**: `ProfileEditForm`
+  usa un `<input type="file" accept="image/*">`, legge il file con
+  `FileReader.readAsDataURL` e salva la data URL risultante in `avatarUrl`
+  (limite 2MB lato client). I post invece restano a un campo URL testuale
+  (spostato sopra al testo, etichettato come link generico: foto, video o
+  sito/canale) — niente upload di file per i post, per non gonfiare
+  `db.json` con base64 su ogni post. `PostCard` sceglie il rendering in
+  base al tipo di link (`utils/linkPreview.js`): estensione immagine,
+  estensione video, URL YouTube, o fallback a card-link cliccabile.
 
 ## Stato attuale
 
@@ -102,8 +108,9 @@ nel README.
 
 ## Limiti noti (vedi anche README)
 
-- Nessun upload reale immagini, nessun WebSocket, nessuna notifica push/
-  OAuth/pagamenti (fuori scope dichiarato).
+- Upload reale solo per avatar profilo e media dei post (foto/video), via
+  base64 in `db.json` — nessun object storage dedicato, nessun WebSocket,
+  nessuna notifica push/OAuth/pagamenti (fuori scope dichiarato).
 - `json-server-auth` non mantenuto: dipende da una versione vulnerabile di
   `jsonwebtoken` senza fix disponibile (`npm audit`). Accettabile perche'
   e' solo un mock locale.
@@ -121,6 +128,37 @@ nel README.
 
 ## Changelog
 
+- **2026-07-21** — Upload reale immagine profilo: `ProfileEditForm` sostituisce
+  il campo URL testuale con `<input type="file">` (accetta immagini, max
+  2MB) codificato in base64 e salvato come `avatarUrl` in `db.json`. Nel
+  form dei post il campo URL resta testuale ma si sposta sopra al campo di
+  testo e diventa un link generico (foto, video, sito/canale, non solo
+  immagine); `PostCard` ora rileva il tipo di link (`src/utils/
+  linkPreview.js`) e renderizza `<img>`, `<video>`, embed YouTube o una
+  card-link a seconda del caso, invece di un `<img>` fisso.
+- **2026-07-21** — `PostForm`: il campo link e' ora sempre visibile (non piu'
+  dietro un toggle), sopra al campo testo obbligatorio. Il vecchio bottone
+  "Aggiungi link" e' sostituito da due bottoni icona (fotocamera per le foto,
+  play per i video) collegati a `<input type="file">` nascosti
+  (`accept="image/*"` / `accept="video/*"`); il file scelto viene letto con
+  `FileReader.readAsDataURL` e la data URL risultante riempie lo stesso
+  campo link (limiti 3MB foto / 50MB video lato client, prima di finire in
+  `db.json` come `imageUrl`).
+- **2026-07-21** — Sostituito l'avvio del backend mock via CLI
+  (`json-server-auth ...`) con `server/server.js`, un bootstrap Express
+  programmatico equivalente (stessi middleware: defaults di json-server,
+  rewriter/guardie di json-server-auth), perche' sia `json-server` che
+  `json-server-auth` hanno il proprio body-parser con limite **hardcoded a
+  10MB**, non esposto da nessun flag CLI — troppo piccolo per un video da
+  50MB codificato in base64 (~68MB). Il nuovo bootstrap disabilita il
+  body-parser incorporato di json-server (`bodyParser: false`) e installa
+  `express.json`/`express.urlencoded` con limite 70MB *prima* del
+  rewriter/guardie; queste ultime, trovando il body gia' parsato
+  (`req._body === true`), saltano il proprio parser da 10MB senza
+  ri-applicare il limite. Verificato con richieste PATCH reali fino a 30MB
+  di body e con un test di guardia (owner diverso -> 403 confermato
+  invariato). `npm run server` / `npm run dev:all` restano gli stessi
+  comandi, solo l'implementazione dietro `npm run server` e' cambiata.
 - **2026-07-20** — Restyling grafico ispirato a LinkedIn ("inClone"): rebranding
   navbar/pagine auth, layout feed a 3 colonne (mini-profilo sticky + feed +
   card "Novità"), avatar di fallback con gradiente deterministico al posto
