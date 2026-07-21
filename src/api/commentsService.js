@@ -7,6 +7,16 @@ export async function fetchCommentsByPost(postId) {
   return data
 }
 
+export async function fetchCommentsForPosts(postIds) {
+  if (!postIds.length) return []
+  const params = new URLSearchParams()
+  postIds.forEach((id) => params.append('postId', id))
+  params.append('_sort', 'createdAt')
+  params.append('_order', 'asc')
+  const { data } = await httpClient.get(`/comments?${params.toString()}`)
+  return data
+}
+
 export async function createComment(comment) {
   const { data } = await httpClient.post('/comments', comment)
   return data

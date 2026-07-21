@@ -23,6 +23,7 @@ import {
   selectPostsByUser,
   selectPostsByUserStatus,
 } from '../features/posts/postsSlice'
+import { fetchCommentsForPosts } from '../features/comments/commentsSlice'
 import {
   fetchConversations,
   startConversation,
@@ -50,6 +51,12 @@ export default function ProfilePage() {
     dispatch(fetchPostsByUser(userId))
     dispatch(fetchConversations(currentUser.id))
   }, [dispatch, userId, currentUser.id])
+
+  useEffect(() => {
+    if (posts.length > 0) {
+      dispatch(fetchCommentsForPosts(posts.map((post) => post.id)))
+    }
+  }, [dispatch, posts])
 
   const isOwnProfile = currentUser.id === userId
 

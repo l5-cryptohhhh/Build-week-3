@@ -13,6 +13,18 @@ export const fetchComments = createAsyncThunk(
   },
 )
 
+export const fetchCommentsForPosts = createAsyncThunk(
+  'comments/fetchCommentsForPosts',
+  async (postIds, { rejectWithValue }) => {
+    try {
+      const comments = await commentsService.fetchCommentsForPosts(postIds)
+      return { postIds, comments }
+    } catch (err) {
+      return rejectWithValue(err.message)
+    }
+  },
+)
+
 export const addComment = createAsyncThunk(
   'comments/addComment',
   async ({ postId, userId, content }, { rejectWithValue }) => {
@@ -63,6 +75,14 @@ const commentsSlice = createSlice({
       .addCase(fetchComments.rejected, (state, action) => {
         state.statusByPostId[action.meta.arg] = 'failed'
         state.error = action.payload
+      })
+      .addCase(fetchCommentsForPosts.fulfilled, (state, action) => {
+        action.payload.postIds.forEach((postId) => {
+          state.byPostId[postId] = action.payload.comments.filter(
+            (comment) => comment.postId === postId,
+          )
+          state.statusByPostId[postId] = 'succeeded'
+        })
       })
       .addCase(addComment.fulfilled, (state, action) => {
         const list = state.byPostId[action.payload.postId] || []

@@ -4,7 +4,11 @@ import ListGroup from 'react-bootstrap/ListGroup'
 import Avatar from '../common/Avatar'
 import EmptyState from '../common/EmptyState'
 import LoadingSpinner from '../common/LoadingSpinner'
-import { selectConversations, selectConversationsStatus } from '../../features/messages/messagesSlice'
+import {
+  selectConversations,
+  selectConversationsStatus,
+  selectUnreadCountForConversation,
+} from '../../features/messages/messagesSlice'
 import { selectUserById } from '../../features/users/usersSlice'
 import { selectCurrentUser } from '../../features/auth/authSlice'
 
@@ -14,16 +18,31 @@ function ConversationRow({ conversation, currentUserId, isActive }) {
       ? conversation.participant2Id
       : conversation.participant1Id
   const otherUser = useSelector(selectUserById(otherUserId))
+  const unreadCount = useSelector(selectUnreadCountForConversation(conversation.id))
+  const hasUnread = !isActive && unreadCount > 0
 
   return (
     <ListGroup.Item
       as={Link}
       to={`/messages/${conversation.id}`}
       active={isActive}
-      className="d-flex align-items-center gap-2"
+      className={`d-flex align-items-center gap-2 position-relative${
+        hasUnread ? ' conversation-row-unread' : ''
+      }`}
     >
-      <Avatar user={otherUser} size={40} />
-      <span className="fw-semibold">{otherUser?.fullName || 'Utente'}</span>
+      <div className="position-relative">
+        <Avatar user={otherUser} size={40} />
+        {hasUnread && (
+          <span
+            className="unread-dot"
+            role="status"
+            aria-label={`${unreadCount} messaggi non letti`}
+          />
+        )}
+      </div>
+      <span className={hasUnread ? 'fw-bold' : 'fw-semibold'}>
+        {otherUser?.fullName || 'Utente'}
+      </span>
     </ListGroup.Item>
   )
 }

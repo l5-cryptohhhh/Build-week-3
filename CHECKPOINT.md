@@ -111,6 +111,9 @@ nel README.
 - Upload reale solo per avatar profilo e media dei post (foto/video), via
   base64 in `db.json` — nessun object storage dedicato, nessun WebSocket,
   nessuna notifica push/OAuth/pagamenti (fuori scope dichiarato).
+  L'aggiornamento "quasi in tempo reale" di commenti e messaggi (vedi
+  changelog 2026-07-21) e' realizzato con polling HTTP (`useInterval`),
+  non WebSocket: un vero push resta nei prossimi passi.
 - `json-server-auth` non mantenuto: dipende da una versione vulnerabile di
   `jsonwebtoken` senza fix disponibile (`npm audit`). Accettabile perche'
   e' solo un mock locale.
@@ -121,7 +124,11 @@ nel README.
 ## Prossimi passi possibili
 
 - Upload reale immagini (profilo/post) con storage dedicato.
-- Messaggi in tempo reale (WebSocket) al posto del polling manuale.
+- Messaggi/commenti push via WebSocket al posto del polling introdotto
+  il 2026-07-21 (il polling e' un compromesso ragionevole su json-server
+  ma genera piu' richieste del necessario e non e' istantaneo).
+- Badge "non letti" anche in navbar (oggi il pallino rosso c'e' solo
+  nella sidebar di `/messages`, vedi changelog 2026-07-21).
 - Notifiche push per messaggi/commenti/like.
 - Ricerca utenti/post, paginazione anche su commenti e messaggi.
 - Backend reale con autorizzazione a grana fine per conversazioni private.
@@ -164,10 +171,35 @@ nel README.
   invariato). `npm run server` / `npm run dev:all` restano gli stessi
   comandi, solo l'implementazione dietro `npm run server` e' cambiata.
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> a6dfe14 (aggiornamento interfaccia e funzionalità)
 =======
 >>>>>>> 3070ec9 (button e url foto sistemate)
+=======
+- **2026-07-21** — Fix contatore commenti "in ritardo" + indicatore
+  messaggi non letti. Il numero sul bottone "Commenti" veniva letto solo
+  dallo slice Redux dei commenti, popolato esclusivamente quando l'utente
+  apriva la sezione commenti di un post (`CommentList`): al primo
+  caricamento del feed/profilo il contatore era quindi vuoto finche' non
+  si cliccava almeno una volta. Aggiunto un fetch batch dei commenti per
+  tutti i post visibili (`fetchCommentsForPosts`, stesso pattern gia' in
+  uso per i like con `fetchLikesForPosts`), dispatchato al caricamento di
+  `PostList`/`ProfilePage` e ripetuto ogni 6s con il nuovo hook
+  `useInterval` per un aggiornamento quasi in tempo reale anche quando
+  altri utenti commentano. Per i messaggi privati: aggiunto uno stato
+  `unreadByConversationId` allo slice messaggi (query
+  `/messages?read=false&userId_ne=<currentUserId>` filtrata per le
+  conversazioni dell'utente), un pallino rosso sull'avatar + sfondo
+  celeste sulla riga della chat in `ConversationList` quando ci sono
+  messaggi non letti, e polling (5s per la lista conversazioni/unread
+  count, 4s per i messaggi di una conversazione aperta) cosi' che nuovi
+  messaggi/notifiche non letti compaiano senza reload manuale. Nessuna
+  modifica allo schema dati: il campo `read` sui messaggi esisteva gia'.
+  Verificato in browser con due sessioni Playwright (Mario/Giulia): invio
+  messaggio da una sessione, comparsa automatica del pallino rosso
+  sull'altra entro un ciclo di polling, nessun errore console.
+>>>>>>> origin/main
 - **2026-07-20** — Restyling grafico ispirato a LinkedIn ("inClone"): rebranding
   navbar/pagine auth, layout feed a 3 colonne (mini-profilo sticky + feed +
   card "Novità"), avatar di fallback con gradiente deterministico al posto
