@@ -8,6 +8,7 @@ import FeedPage from '../pages/FeedPage'
 import ProfilePage from '../pages/ProfilePage'
 import MessagesPage from '../pages/MessagesPage'
 import SearchPage from '../pages/SearchPage'
+import SavedPostsPage from '../pages/SavedPostsPage'
 import NotFoundPage from '../pages/NotFoundPage'
 
 export default function AppRouter() {
@@ -25,6 +26,7 @@ export default function AppRouter() {
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/messages/:conversationId" element={<MessagesPage />} />
           <Route path="/search" element={<SearchPage />} />
+          <Route path="/saved" element={<SavedPostsPage />} />
         </Route>
       </Route>
 

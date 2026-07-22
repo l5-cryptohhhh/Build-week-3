@@ -8,6 +8,7 @@ import { fetchConversations, fetchUnreadCounts } from './features/messages/messa
 import { connectSocket, disconnectSocket } from './socket'
 import usePresenceSocket from './hooks/usePresenceSocket'
 import useConversationSocket from './hooks/useConversationSocket'
+import useActivitySocket from './hooks/useActivitySocket'
 import AppRouter from './routes/AppRouter'
 import ToastHost from './components/common/ToastHost'
 import ConfirmModalHost from './components/common/ConfirmModalHost'
@@ -21,6 +22,7 @@ function SessionBootstrap() {
 
   usePresenceSocket()
   useConversationSocket()
+  useActivitySocket()
 
   useEffect(() => {
     dispatch(restoreSession())

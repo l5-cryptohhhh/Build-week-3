@@ -74,7 +74,25 @@ function getPostState(state, postId) {
 const commentsSlice = createSlice({
   name: 'comments',
   initialState,
-  reducers: {},
+  reducers: {
+    commentReceived(state, action) {
+      const postState = getPostState(state, action.payload.postId)
+      if (postState.items.some((comment) => comment.id === action.payload.id)) return
+      postState.items.push(action.payload)
+      postState.totalCount += 1
+    },
+    commentUpdatedFromSocket(state, action) {
+      const postState = getPostState(state, action.payload.postId)
+      const index = postState.items.findIndex((comment) => comment.id === action.payload.id)
+      if (index !== -1) postState.items[index] = action.payload
+    },
+    commentDeletedFromSocket(state, action) {
+      const postState = getPostState(state, action.payload.postId)
+      if (!postState.items.some((comment) => comment.id === action.payload.id)) return
+      postState.items = postState.items.filter((comment) => comment.id !== action.payload.id)
+      postState.totalCount = Math.max(0, postState.totalCount - 1)
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchComments.pending, (state, action) => {
@@ -110,6 +128,7 @@ const commentsSlice = createSlice({
   },
 })
 
+export const { commentReceived, commentUpdatedFromSocket, commentDeletedFromSocket } = commentsSlice.actions
 export default commentsSlice.reducer
 
 export const selectCommentsForPost = (postId) => (state) =>

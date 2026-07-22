@@ -193,6 +193,73 @@ nel README.
 
 ## Changelog
 
+- **2026-07-22** — Realtime esteso a post/commenti/like/follow (prima solo
+  messaggi/notifiche/presenza). In `server/realtime.js`, `router.render`
+  ora emette anche `post:new`/`post:updated`/`post:deleted`,
+  `comment:new`/`comment:updated`/`comment:deleted`,
+  `like:new`/`like:deleted`, `follow:new`/`follow:deleted` — broadcast a
+  tutti i client connessi (`io.emit`, non scoped a room, a differenza dei
+  messaggi che restano diretti ai soli partecipanti) perche' feed/profili
+  sono dati pubblici tra utenti loggati. La cattura pre-delete del body
+  (necessaria per sapere `postId`/`userId` dopo che json-server ha gia'
+  rimosso la riga, stesso problema gia' risolto per i messaggi) e' stata
+  generalizzata da un middleware specifico per `/messages/:id` a uno
+  parametrico su `DELETE_CAPTURE_COLLECTIONS = ['messages', 'comments',
+  'likes', 'follows']`. Lato client, nuovo hook `useActivitySocket`
+  (montato in `App.jsx` accanto a `usePresenceSocket`/
+  `useConversationSocket`) inoltra questi eventi a nuovi reducer plain in
+  `postsSlice`/`commentsSlice`/`followSlice` (`*Received`/
+  `*UpdatedFromSocket`/`*DeletedFromSocket`), tutti con dedup by id perche'
+  chi compie l'azione riceve sia l'update ottimistico del proprio thunk sia
+  l'eco del proprio evento broadcast. Corretto anche un gap preesistente:
+  il server emetteva gia' `notification:new` ma nessun listener lo
+  consumava lato client (azione `notificationReceived` orfana) — ora
+  agganciato nello stesso hook. **Limite noto**: il broadcast e' globale a
+  tutti gli utenti online, non filtrato per follower/visibilita' — accettabile
+  per un feed pubblico in un progetto didattico, ma da rivedere se in
+  futuro si introduce un feed privato o filtri di visibilita' per post.
+- **2026-07-22** — Navbar riordinata stile LinkedIn: campo di ricerca spostato
+  accanto al logo (`AppNavbar.jsx`), voce "Cerca" del menu rimossa (il vecchio
+  link a `/search` era ridondante col nuovo campo). Il campo e' un `Form`
+  controllato: al submit fa `dispatch(setSearchQuery(...))` poi `navigate('/search')`
+  — riusa lo stesso stato Redux (`search.query`) gia' letto da `SearchPage` al
+  mount, nessuna nuova rotta/query-param. Le altre voci (Home, Il mio profilo,
+  Messaggi, tema, notifiche, avatar, logout) restano in un unico `<Nav>` ora
+  spinto a destra con `ms-auto` invece di essere divise fra un gruppo
+  `me-auto` e uno senza margine. Campo nascosto sotto `sm` (`d-none d-sm-block`)
+  per non affollare la navbar mobile, dove resta comunque raggiungibile da
+  `/search` tramite navigazione diretta. Lint e build puliti; nessun tool di
+  automazione browser disponibile per uno screenshot in questa sessione.
+- **2026-07-22** — Post salvati + card "Collegamenti" in home. Nuovo bottone
+  segnalibro su ogni `PostCard` (accanto a "Condividi"): salva/rimuove il post
+  aggiungendo/togliendo il suo `id` da un nuovo campo `savedPostIds` (array)
+  sul record utente, stesso pattern gia' usato da `experiences` (thunk
+  `updateProfile` esistente, nessuna nuova collection ne' permesso — il
+  campo vive sull'utente proprietario, quindi il permesso `640` gia' su
+  `users` copre il PATCH senza bisogno del workaround a `660` usato per
+  `likes`/`follows`). Nuova voce "Elementi salvati" sotto la mini-card
+  profilo nella sidebar della home (replica lo screenshot di riferimento,
+  ma senza Gruppi/Newsletter/Eventi come richiesto — non implementati,
+  fuori scope), porta a una nuova rotta `/saved` (`SavedPostsPage.jsx`) che
+  elenca i post salvati riusando `PostCard`. Per recuperare i post salvati
+  (possono appartenere a qualunque utente, non solo quelli gia' in cache)
+  nuovo thunk `fetchSavedPosts` in `postsSlice` + `fetchPostsByIds` in
+  `postsService` (`GET /posts?id=..&id=..`, json-server tratta id ripetuti
+  come filtro OR, stessa tecnica gia' in uso per i like); l'ordine di
+  ritorno del backend non rispetta l'ordine di `savedPostIds` (verificato
+  con una chiamata diretta), quindi `SavedPostsPage` riordina lato client
+  mappando su `savedPostIds` (piu' recente salvato per primo, l'array si
+  aggiorna con `unshift` al salvataggio). Nuova card "Collegamenti" nella
+  sidebar della home (`ConnectionsCard.jsx`, sotto "Elementi salvati"):
+  mostra le persone che si seguono reciprocamente (nuovo selettore
+  `selectMutualIds` in `followSlice`, intersezione tra chi l'utente segue e
+  chi lo segue). Verificato lo scambio HTTP effettivo (PATCH
+  `savedPostIds`, fetch multi-id, calcolo reciprocita' sui dati reali di
+  `db.json`) con richieste dirette al backend mock gia' in esecuzione;
+  nessun tool di automazione browser disponibile in questa sessione per una
+  verifica visiva in-app, solo lint e build (puliti). Sezione "Elementi
+  salvati"/"Collegamenti" aggiunta solo alla sidebar della home (`FeedPage`),
+  non al profilo — non richiesto.
 - **2026-07-22** — Fix menu "Condividi" + nuova sezione "Esperienze" in
   profilo. Il dropdown di `ShareMenu` (WhatsApp/Telegram/Instagram/TikTok/
   YouTube) apriva verso il basso: ogni `PostCard` ha classe `.animate-fade-in`

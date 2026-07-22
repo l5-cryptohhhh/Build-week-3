@@ -12,6 +12,7 @@ import ShareMenu from './ShareMenu'
 import { selectUserById } from '../../features/users/usersSlice'
 import { selectCurrentUser } from '../../features/auth/authSlice'
 import { updatePost, deletePost, toggleLike, selectLikesForPost } from '../../features/posts/postsSlice'
+import { updateProfile } from '../../features/users/usersSlice'
 import {
   fetchComments,
   selectCommentsStatusForPost,
@@ -34,6 +35,8 @@ export default function PostCard({ post }) {
 
   const isOwner = currentUser.id === post.userId
   const isLiked = likes.some((like) => like.userId === currentUser.id)
+  const savedPostIds = currentUser.savedPostIds || []
+  const isSaved = savedPostIds.includes(post.id)
 
   // Il conteggio commenti deve comparire anche prima di aprire la lista
   // (come i like): si scarica la prima pagina di commenti al montaggio del
@@ -64,6 +67,13 @@ export default function PostCard({ post }) {
     dispatch(toggleLike({ postId: post.id, userId: currentUser.id }))
     setIsPopping(true)
     setTimeout(() => setIsPopping(false), 300)
+  }
+
+  const handleToggleSave = () => {
+    const nextSavedIds = isSaved
+      ? savedPostIds.filter((id) => id !== post.id)
+      : [post.id, ...savedPostIds]
+    dispatch(updateProfile({ id: currentUser.id, changes: { savedPostIds: nextSavedIds } }))
   }
 
   return (
@@ -149,6 +159,15 @@ export default function PostCard({ post }) {
             {commentsTotal} Commenti
           </button>
           <ShareMenu post={post} />
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary ms-auto"
+            onClick={handleToggleSave}
+            aria-label={isSaved ? 'Rimuovi dai salvati' : 'Salva post'}
+            title={isSaved ? 'Rimuovi dai salvati' : 'Salva post'}
+          >
+            <i className={`bi ${isSaved ? 'bi-bookmark-fill' : 'bi-bookmark'}`}></i>
+          </button>
         </div>
 
         {showComments && <CommentList postId={post.id} />}

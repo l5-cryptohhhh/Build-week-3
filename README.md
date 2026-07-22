@@ -88,9 +88,14 @@ Le regole di autorizzazione sono definite in `server/routes.json` (formato JSON 
 Stesso host/porta del backend mock (`server/server.js` espone un unico
 `http.Server` condiviso tra REST e Socket.IO). Handshake autenticato con lo
 stesso JWT del login (`auth: { token }`); alla connessione ogni client entra
-nella room `user:<id>` e riceve solo eventi diretti a lui. Eventi emessi dal
-server (vedi `server/realtime.js`): `message:new`, `message:updated`,
-`message:deleted`, `conversation:new`, `notification:new`.
+nella room `user:<id>`. Eventi emessi dal server (vedi `server/realtime.js`):
+
+- diretti al solo utente destinatario (room `user:<id>`): `message:new`,
+  `message:updated`, `message:deleted`, `conversation:new`, `notification:new`
+- in broadcast a tutti i client connessi (feed/dati pubblici tra utenti
+  loggati): `post:new`, `post:updated`, `post:deleted`, `comment:new`,
+  `comment:updated`, `comment:deleted`, `like:new`, `like:deleted`,
+  `follow:new`, `follow:deleted`, `presence:online`, `presence:offline`
 
 ## Struttura del progetto
 
