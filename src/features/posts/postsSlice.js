@@ -222,7 +222,13 @@ const postsSlice = createSlice({
         })
       })
       .addCase(createPost.fulfilled, (state, action) => {
-        state.items.unshift(action.payload)
+        // Dedup by id: il listener realtime (postReceived) puo' ricevere
+        // l'eco della scrittura locale prima ancora che questo thunk si
+        // risolva, altrimenti l'autore vedrebbe il proprio post due volte
+        // in cima al feed.
+        if (!state.items.some((post) => post.id === action.payload.id)) {
+          state.items.unshift(action.payload)
+        }
         const userId = action.payload.userId
         if (state.byUserId[userId]) {
           state.byUserId[userId] = [action.payload, ...state.byUserId[userId]]
@@ -272,7 +278,13 @@ const postsSlice = createSlice({
       })
       .addCase(toggleLike.fulfilled, (state, action) => {
         if (action.payload.liked) {
-          state.likes.push(action.payload.like)
+          // Dedup by id: il listener realtime (likeReceived) puo' ricevere
+          // l'eco della scrittura locale prima ancora che questo thunk si
+          // risolva, altrimenti il like risulterebbe conteggiato due volte.
+          const like = action.payload.like
+          if (!state.likes.some((item) => item.id === like.id)) {
+            state.likes.push(like)
+          }
         } else {
           state.likes = state.likes.filter((like) => like.id !== action.payload.likeId)
         }
