@@ -43,7 +43,7 @@ import { selectIsUserOnline } from '../features/presence/presenceSlice'
 
 export default function ProfilePage() {
   const { id } = useParams()
-  const userId = Number(id)
+  const userId = id
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const currentUser = useSelector(selectCurrentUser)

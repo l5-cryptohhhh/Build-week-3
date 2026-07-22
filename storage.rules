@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// Solo i video dei post passano da Storage: avatar/copertina/foto post sono
+// base64 diretti nei documenti Firestore (vedi CHECKPOINT.md - evita di
+// dover collegare una carta di credito al progetto solo per quelli), un
+// video da 50MB invece non potrebbe mai stare in un documento da 1MB.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /posts/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.size < 50 * 1024 * 1024
+        && request.resource.contentType.matches('video/.*');
+    }
+  }
+}

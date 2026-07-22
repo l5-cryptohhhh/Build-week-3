@@ -12,11 +12,11 @@ export default function FollowingFeedList() {
   const dispatch = useDispatch()
   const currentUser = useSelector(selectCurrentUser)
   const followingIds = useSelector(selectFollowingIds(currentUser.id))
-  const { items: posts, status, page, limit, totalCount } = useSelector(selectFollowingFeed)
+  const { items: posts, status, cursor, limit, hasMore } = useSelector(selectFollowingFeed)
 
   useEffect(() => {
     if (followingIds.length === 0) return
-    dispatch(fetchFollowingFeed({ page: 1, limit, followingIds }))
+    dispatch(fetchFollowingFeed({ limit, followingIds }))
     // followingIds.join per evitare un fetch ad ogni nuovo array (stesso contenuto, riferimento diverso)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, limit, followingIds.join(',')])
@@ -50,8 +50,6 @@ export default function FollowingFeedList() {
     )
   }
 
-  const hasMore = posts.length < totalCount
-
   return (
     <div>
       {posts.map((post) => (
@@ -62,7 +60,7 @@ export default function FollowingFeedList() {
           <Button
             variant="outline-primary"
             disabled={status === 'loading'}
-            onClick={() => dispatch(fetchFollowingFeed({ page: page + 1, limit, followingIds }))}
+            onClick={() => dispatch(fetchFollowingFeed({ cursor, limit, followingIds }))}
           >
             {status === 'loading' ? 'Caricamento...' : 'Carica altri post'}
           </Button>

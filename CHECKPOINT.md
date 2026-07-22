@@ -17,28 +17,44 @@
 
 Social network didattico (esercizio "Build Week 3", corso Epicode):
 autenticazione, feed con post/commenti/like, profilo utente, messaggistica
-privata. Frontend React + Redux Toolkit; backend fittizio JSON Server +
-JSON Server Auth per prototipare senza un backend reale.
+privata in tempo reale. Frontend React + Redux Toolkit; backend **Firebase**
+(Authentication + Firestore + Storage) — fino al 2026-07-22 era un backend
+fittizio JSON Server + JSON Server Auth, vedi la voce di changelog in fondo
+per i dettagli della migrazione e il perche'.
 
 ## Come riprendere il lavoro
 
+Serve un progetto Firebase reale (Auth email/password + Firestore + Storage
+abilitati) con le chiavi pubbliche in `.env` — vedi README.md per la
+procedura guidata completa e per come popolarlo con i dati demo
+(`npm run seed`).
+
 ```bash
 npm install
-npm run dev:all   # frontend su :5173, backend mock su :3001
+npm run dev   # frontend su :5173, si connette direttamente a Firebase
 ```
 
-Credenziali demo (password unica per tutti: `Password123!`):
-`mario.rossi@example.com`, `giulia.bianchi@example.com`, `luca.verdi@example.com`.
-E' anche possibile registrarsi da `/register`.
+Credenziali demo (valide solo dopo `npm run seed`, password unica per
+tutti: `Password123!`): `mario.rossi@example.com`, `giulia.bianchi@example.com`,
+`luca.verdi@example.com`. E' anche possibile registrarsi da `/register`.
 
 Comandi utili: `npm run lint` (oxlint), `npm run build` (vite build),
-`npm run server` (solo backend mock).
+`npm run seed` (popola Firestore/Auth con i dati demo).
 
 Per i dettagli su endpoint, variabili ambiente e struttura cartelle vedi
 [README.md](README.md) — qui ci concentriamo su *perche'* le cose sono
 fatte cosi', non su *cosa* fanno (quello lo spiega gia' il codice/README).
 
 ## Stack e decisioni chiave (con motivazioni)
+
+> **Nota (2026-07-22)**: le voci di questa sezione che parlano di
+> `json-server`/`json-server-auth`/`socket.io`/`server/*` descrivono il
+> backend **precedente** alla migrazione a Firebase (vedi changelog in
+> fondo) — lasciate qui come documentazione storica del perche' di certe
+> scelte a monte (es. `likes` come collection separata, permessi `660`),
+> molte delle quali non si applicano piu' cosi' com'erano con Firestore
+> (che ha un modello di autorizzazione diverso, vedi `firestore.rules`).
+> Le decisioni valide oggi sono nella voce di changelog della migrazione.
 
 - **React 19 + Vite 8 + oxlint** invece di React 18 + ESLint come
   originariamente ipotizzato in fase di design: il progetto era gia' stato
@@ -128,71 +144,253 @@ fatte cosi', non su *cosa* fanno (quello lo spiega gia' il codice/README).
 
 ## Stato attuale
 
-Tutte le milestone della Fase 2 sono complete e verificate con un test
-end-to-end reale in browser (Playwright headless): login, creazione/
-modifica/eliminazione post, like, commenti, modifica profilo, invio/
-modifica/eliminazione messaggi, logout — nessun errore in console, lint e
-build puliti.
+Tutte le milestone della Fase 2 sono complete e sono state verificate con
+un test end-to-end reale in browser (Playwright headless) **sul vecchio
+backend JSON Server** prima della migrazione a Firebase del 2026-07-22 (vedi
+changelog): login, creazione/modifica/eliminazione post, like, commenti,
+modifica profilo, invio/modifica/eliminazione messaggi, logout — nessun
+errore in console, lint e build puliti. Dopo la migrazione, lint e build
+sono di nuovo puliti, ma un test end-to-end in browser reale contro un
+progetto Firebase live non e' stato ripetuto in questa sessione (nessun
+progetto Firebase disponibile per testare, ne' tool di automazione browser)
+— vedi la voce di changelog della migrazione per il dettaglio di cosa
+resta da verificare manualmente.
 
-`server/db.json` contiene i dati demo iniziali **piu' quanto e' stato
-creato durante l'uso reale dell'app** (nuove registrazioni, post, commenti,
-conversazioni create dagli utenti). Questo e' normale e atteso per un
-backend mock: non e' un "seed" da preservare intatto, e' lo stato corrente
-del database di sviluppo. Se serve uno stato pulito per una demo, si puo'
-rigenerare `db.json` partendo dai 3 utenti demo e dai contenuti descritti
-nel README.
+Non c'e' piu' un `db.json` locale: i dati vivono in Firestore. Per uno
+stato demo pulito si usa `npm run seed` (vedi README), ripetibile senza
+duplicare utenti gia' esistenti (verifica per email prima di creare).
 
 ## Limiti noti (vedi anche README)
 
+- **Non verificato end-to-end contro un progetto Firebase reale** dopo la
+  migrazione (vedi "Stato attuale" sopra): lint/build passano, ma login,
+  realtime, upload e autorizzazione via Security Rules vanno confermati al
+  primo utilizzo con un progetto reale configurato.
 - **Widget "inClone Notizie" (feed, colonna destra)**: consuma
   `https://api.apitube.io/v1/news/everything` con una API key salvata in
   `.env.local` (non tracciato in git, coperto dal pattern `*.local` gia'
-  presente in `.gitignore` — a differenza di `.env`, che invece e' tracciato
-  e quindi non deve mai contenere segreti). La key fornita e' di livello
-  trial: i campi `href`/`source.domain`/`image`/`description`/`body` tornano
-  troncati con un suffisso letterale `[Upgrade subscription plan]` inserito
-  dall'API stessa nel valore della stringa (verificato con richieste dirette,
-  non e' un bug di parsing). Per questo il widget mostra solo titolo e data
-  relativa (`published_at`), senza link cliccabile ne' nome della fonte: un
-  `<a href>` verso quell'URL troncato porterebbe a una pagina inesistente.
-  Se in futuro si passa a una key con piano superiore, si puo' reintrodurre
-  il link esterno e la fonte in `NewsWidget.jsx`. Fetch diretta dal browser
-  (nessun proxy server-side): la key finisce comunque nel bundle client,
-  accettabile per una demo didattica ma da tenere a mente se il repo diventa
-  pubblico con una key reale.
-- Upload reale solo per avatar profilo e media dei post (foto/video), via
-  base64 in `db.json` — nessun object storage dedicato, nessun
-  OAuth/pagamenti (fuori scope dichiarato).
-- `json-server-auth` non mantenuto: dipende da una versione vulnerabile di
-  `jsonwebtoken` senza fix disponibile (`npm audit`). Accettabile perche'
-  e' solo un mock locale. Lo stesso secret hardcoded viene ora riusato anche
-  per autenticare i WebSocket (vedi sopra) — stesso rischio accettato, non
-  nuovo.
-- Autorizzazione su `messages`/`conversations` enforced solo lato client
-  (vedi sopra) — da rivedere se si passa a un backend reale. Le notifiche
-  invece hanno autorizzazione reale lato server (`640`, owner-only).
-- CORS del WebSocket aperto a `origin: '*'` (`server/server.js`), coerente
-  col CORS gia' permissivo di json-server di default — nessun cambio di
-  postura, ma da restringere se si passa a un deployment reale.
-- `GET /users` (usato da profilo, elenco conversazioni e ora anche dalla
-  ricerca utenti) restituisce anche l'hash della password di ogni utente —
-  limite preesistente di json-server (non filtra i campi), la ricerca lo
-  rende solo piu' visibile. Non risolto in questo giro.
+  presente in `.gitignore`). La key fornita e' di livello trial: i campi
+  `href`/`source.domain`/`image`/`description`/`body` tornano troncati con
+  un suffisso letterale `[Upgrade subscription plan]` inserito dall'API
+  stessa nel valore della stringa (verificato con richieste dirette, non e'
+  un bug di parsing). Per questo il widget mostra solo titolo e data
+  relativa (`published_at`), senza link cliccabile ne' nome della fonte. Non
+  toccato dalla migrazione a Firebase (widget indipendente dal backend dati).
+- **Ricerca per prefisso, non full-text** (persa rispetto a `?q=` di
+  json-server): vedi README, sezione Limiti noti.
+- **Feed "Chi segui" limitato a 10 utenti seguiti per pagina** (limite del
+  filtro `in` di Firestore): vedi README.
+- **Notifiche create client-side**, non da un vero backend (nessuna Cloud
+  Function, piano gratuito): vedi README.
+- **Presenza online/offline via heartbeat** (non `onDisconnect` come
+  Realtime Database): vedi README.
+- **Avatar/copertina/foto post limitati a 300-700KB** (base64 in Firestore,
+  niente Firebase Storage per restare gratis senza carta di credito — solo
+  i video passano da Storage): vedi README, sezione "Upload immagini vs
+  Storage".
+- `GET` su `users` (profilo, elenco conversazioni, ricerca) resta leggibile
+  da qualunque utente autenticato, email inclusa — le Security Rules
+  proteggono la *scrittura* (solo il proprietario) ma non filtrano i campi
+  in lettura. Le password non sono piu' un problema (Firebase Auth, mai in
+  Firestore), a differenza di prima con l'hash bcrypt esposto da json-server.
 - Le notifiche di commento/mi-piace aprono la home (non esiste ancora una
-  rotta di dettaglio del singolo post da linkare).
+  rotta di dettaglio del singolo post da linkare) — invariato dalla
+  migrazione.
 
 ## Prossimi passi possibili
 
-- Upload reale immagini (profilo/post) con storage dedicato.
-- Backend reale con autorizzazione a grana fine per conversazioni private.
+- Verificare end-to-end in browser contro un progetto Firebase reale
+  (login, realtime multi-utente, upload Storage, Security Rules) — non
+  ancora fatto in questa sessione, vedi limiti noti.
+- Cloud Functions (piano Blaze) per le notifiche server-side, con
+  validazione reale invece delle sole Security Rules.
 - Rotta di dettaglio del singolo post (per linkare le notifiche di
   commento/mi-piace al post esatto invece che alla home).
-- Escludere l'hash password dalla risposta di `GET /users` (vedi limiti
-  noti) — stessa infrastruttura di `router.render` gia' introdotta per le
-  notifiche puo' essere riusata per questo.
+- Presenza via Realtime Database (`onDisconnect`) per una rilevazione
+  offline istantanea invece dell'heartbeat.
+- Ricerca full-text reale (Algolia/Typesense) al posto del prefix-match.
 
 ## Changelog
 
+- **2026-07-22** — Prima verifica end-to-end reale contro il progetto
+  Firebase dell'utente (`linkclone-b7963`), con Playwright headless
+  (registrazione, post, like, commenti, profilo, ricerca, messaggistica tra
+  due utenti). Trovati e corretti 2 bug reali introdotti dalla migrazione,
+  non emersi da lint/build:
+  - **Ricerca utenti sempre vuota**: `authService.register()` non
+    impostava `usernameLower`/`fullNameLower` sul documento utente (li
+    calcolava solo `usersService.updateUser()`, per le modifiche profilo
+    successive). Le query di ricerca sono range-query su quei campi, e
+    Firestore esclude dai risultati i documenti dove il campo non esiste
+    affatto — quindi ogni utente appena registrato era invisibile alla
+    ricerca finche' non modificava il profilo almeno una volta. Fix:
+    calcolati anche in `register()`.
+  - **Messaggistica bloccata da `permission-denied` su tutte le
+    conversazioni**: la regola `conversations` in `firestore.rules`
+    controllava `participant1Id`/`participant2Id`, ma le query client
+    (`useConversationsRealtime`, `fetchConversationsForUser`) filtrano su
+    `participantIds` (l'array). Per una query "list", Firestore nega
+    l'intera richiesta se il campo controllato dalla regola non coincide
+    con quello del filtro — anche se la regola non fa un `get()` e anche
+    se il dato e' logicamente coerente (`participantIds` e' derivato
+    proprio da quei due campi). Riprodotto ed isolato con uno script Node
+    a parte (client SDK Firebase, bypassando l'app React) per confermare
+    che fosse un problema di regole e non di codice applicativo. Stesso
+    principio gia' applicato correttamente a `messages` (da cui il
+    `participantIds` denormalizzato) ma dimenticato su `conversations`
+    stessa. Fix: la regola ora controlla `participantIds`, come la query.
+  - **Stesso bug di mismatch anche su `messagesService.fetchMessages` e
+    `fetchUnreadCount`**: filtravano solo per `conversationId`, non
+    `participantIds` — trovato per analogia mentre si verificava il fix
+    sopra, prima che causasse un bug visibile (la paginazione "carica
+    messaggi precedenti" e il conteggio dei non letti avrebbero fallito
+    silenziosamente). Aggiunto il filtro `where('participantIds',
+    'array-contains', userId)` a entrambe; `fetchMessages` ora richiede
+    `userId` tra i parametri (passato da `messagesSlice` via
+    `getState().auth.user.id`).
+  - Tutte le altre query dell'app sono state riverificate sistematicamente
+    contro le rispettive regole (grep di ogni `where(...)` in `src/api` e
+    `src/hooks` incrociato con `firestore.rules`): nessun altro mismatch
+    trovato. `posts`/`comments`/`likes`/`follows`/`users` sono al sicuro da
+    questa classe di bug per costruzione (regola `allow read: if
+    isSignedIn()`, nessuna dipendenza da `resource.data`, quindi qualunque
+    forma di query e' ammessa).
+  - **Lezione per il futuro**: quando una security rule Firestore referenzia
+    un campo di `resource.data`, ogni query "list"/`onSnapshot` su quella
+    collection deve includere un filtro esplicito sullo stesso campo,
+    anche se logicamente ridondante con altri filtri gia' presenti.
+  - Non ancora rifatto un test end-to-end completo dopo l'ultimo fix (le
+    regole vanno ripubblicate manualmente sulla console dall'utente, non
+    automatizzabile da qui) — indice Firestore per `notifications`
+    ancora da creare (link diretto fornito, un click).
+- **2026-07-22** — Follow-up alla migrazione Firebase: rimosso Firebase
+  Storage per avatar/copertina/foto dei post, su richiesta esplicita di
+  restare gratis senza collegare una carta di credito (dal 3 febbraio 2026
+  Firebase richiede il piano Blaze anche solo per abilitare Storage, vedi
+  voce precedente e README). `ProfileEditForm.jsx`/`PostForm.jsx` tornano a
+  salvare le immagini come base64 direttamente nei documenti Firestore
+  (`avatarUrl`/`coverUrl`/`imageUrl`), con limiti lato client ridotti per
+  stare dentro il tetto fisso di 1MB per documento di Firestore: 300KB per
+  avatar/copertina (condividono lo stesso documento utente, quindi il
+  budget e' diviso), 700KB per le foto dei post. **I video restano invece
+  su Firebase Storage** (`storageService.uploadPostMedia`, unica funzione
+  rimasta nel file): un video da 50MB non potrebbe mai stare in un
+  documento Firestore in nessun caso, quindi per quelli non c'era
+  alternativa gratuita — scelta esplicita dell'utente tra "niente upload
+  video" e "Storage solo per i video". `storage.rules` ridotto di
+  conseguenza a un solo path (`posts/{uid}/...`, solo `content-type`
+  `video/*`). `PostForm.jsx`: la logica di "file pending caricato al
+  submit" (per non consumare banda se poi si annulla il post) resta solo
+  per i video; le foto tornano al vecchio comportamento (base64 e' gia' il
+  valore finale, nessun caricamento asincrono). Lint e build puliti; non
+  verificato in browser (nessun progetto Firebase live in questa sessione).
+- **2026-07-22** — Migrazione completa del backend da JSON Server + JSON
+  Server Auth + socket.io a **Firebase** (Authentication + Firestore +
+  Storage), su richiesta esplicita ("deve essere in tempo reale"). Cambio
+  architetturale piu' grande del progetto dopo l'implementazione iniziale:
+  tocca praticamente ogni service/slice/hook che parla col backend.
+  - **Auth**: `authService`/`authSlice` riscritti su Firebase Auth
+    (`createUserWithEmailAndPassword`/`signInWithEmailAndPassword`/
+    `onAuthStateChanged`); il profilo esteso (username, bio, ecc.) vive in
+    `users/{uid}` su Firestore, non nel token. Il vecchio `restoreSession`
+    basato su JWT in `localStorage` e' sparito: `onAuthStateChanged`,
+    sottoscritto una volta in `App.jsx`, sostituisce sia il ripristino
+    sessione sia il vecchio listener `auth:expired` (Firebase gestisce da
+    solo il refresh token). Rimossi `src/api/httpClient.js` e
+    `src/utils/jwt.js` (non piu' necessari).
+  - **Dati**: ogni `api/*Service.js` riscritto per parlare direttamente con
+    l'SDK Firestore invece di fare richieste REST a json-server. Id
+    deterministici (`postId_userId` per i like, `followerId_followingId`
+    per i follow) al posto degli id auto-incrementali, per garantire
+    unicita' senza letture extra. Paginazione passata da "numero di pagina"
+    (compatibile con `_page`/`_limit` di json-server) a **cursori**
+    (`where(createdAt, <, cursore)`): un cursore-snapshot di Firestore non
+    e' serializzabile nello stato Redux, quindi si usa il valore ISO di
+    `createdAt` dell'ultimo elemento caricato. Tutte le slice/i componenti
+    che leggevano `page`/`totalCount` sono stati aggiornati a
+    `cursor`/`hasMore` (postsSlice, commentsSlice, messagesSlice,
+    PostList/FollowingFeedList/CommentList/ConversationView). Il conteggio
+    commenti su `PostCard` (mostrato anche a lista chiusa) usa invece
+    `getCountFromServer` (aggregazione lato server, 1 sola lettura "count"),
+    dato che con la paginazione a cursore `items.length` non riflette piu'
+    il totale reale.
+  - **Ricerca**: Firestore non ha un equivalente di `?q=` (substring-match)
+    di json-server. Emulata con prefix-match su campi `*Lower` dedicati
+    (`usernameLower`/`fullNameLower` per gli utenti, `contentLower` per i
+    post) — trova solo risultati che *iniziano* per il testo cercato, non a
+    meta' stringa. "Carica altri risultati" rifa' la query con un limite
+    piu' alto invece di usare un cursore vero (i due prefissi username/nome
+    non sono comparabili con un singolo cursore). Limite noto, documentato
+    in README.
+  - **Realtime**: sostituito l'intero `socket.io` (client + `server/
+    realtime.js`) con listener `onSnapshot` di Firestore. Nuovi hook in
+    `src/hooks/`: `useActivityRealtime` (post/commenti/like/follow, listener
+    globali senza filtro — le Security Rules su queste collection non
+    dipendono da altri documenti, quindi sono ammessi), `useConversationsRealtime`
+    (conversazioni/messaggi, filtrati per `participantIds array-contains
+    uid`), `useNotificationsRealtime` (notifiche, filtrate per `userId`).
+    Rimossi `src/socket.js`, `useConversationSocket.js`, `usePresenceSocket.js`,
+    `useActivitySocket.js`. I reducer `*Received`/`*UpdatedFromSocket`/
+    `*DeletedFromSocket` nelle slice sono stati **riusati cosi' come sono**
+    (stesso dedup-by-id di prima), solo la sorgente degli eventi e' cambiata.
+  - **Scoperta chiave**: una security rule che fa `get()` su un altro
+    documento (es. verificare i partecipanti di una conversazione per
+    autorizzare la lettura di un messaggio) blocca le query "list"/
+    `onSnapshot` senza filtro su quel campo — necessario per i listener
+    realtime. Fix: `participantIds` (array dei due partecipanti) copiato
+    dalla conversazione su ogni messaggio al momento dell'invio
+    (`messagesService.sendMessage`), cosi' sia la security rule
+    (`request.auth.uid in resource.data.participantIds`) sia la query client
+    possono verificare l'appartenenza senza un `get()` incrociato. Pattern
+    standard per Firestore, non specifico di questo progetto.
+  - **Notifiche**: create **client-side** da chi compie l'azione (scelta
+    esplicita per restare sul piano gratuito Spark, niente Cloud Functions/
+    Blaze) invece che da un hook server-side come prima (`router.render` di
+    json-server). Le Security Rules impediscono di creare una notifica per
+    se stessi o spacciandosi per un `actorId` diverso dal proprio uid, ma
+    non c'e' validazione server-side reale (limite noto, documentato).
+  - **Autorizzazione**: passata da json-server-auth (permessi `640`/`660`
+    a livello di intera collection, ownership riconosciuta solo su un
+    singolo campo `userId`) a Firestore Security Rules (`firestore.rules`),
+    che possono verificare ownership su piu' campi per documento. Risolve
+    davvero il limite storico "autorizzazione su messages/conversations
+    solo lato client": ora un utente non partecipante non puo' leggere/
+    scrivere messaggi/conversazioni altrui nemmeno bypassando la UI.
+  - **Upload**: avatar/copertina (`ProfileEditForm`) e media dei post
+    (`PostForm`) passati da base64-in-JSON a Firebase Storage
+    (`src/api/storageService.js`, path `avatars|covers|posts/{uid}/...`).
+    L'anteprima locale resta via `FileReader`/data URL (invariata, istantanea,
+    nessuna attesa di rete); il file viene caricato su Storage solo al
+    submit del form, cosi' scegliere un'immagine e poi annullare non
+    consuma banda/quota. `getLinkType` (gia' esistente in
+    `utils/linkPreview.js`) riusato per capire in `PostForm` se un
+    `initialImageUrl` (Storage o legacy data:) va trattato come media da
+    editare o come link testuale esterno.
+  - **Rimosso**: l'intera cartella `server/` (json-server, json-server-auth,
+    express, socket.io, `realtime.js`, `db.json`/`db.seed.json`). I dati
+    demo sorgente sono ora in `scripts/demoData.json`, con un nuovo script
+    di migrazione una tantum `scripts/seedFirestore.js` (Firebase Admin SDK)
+    che crea gli utenti demo in Firebase Auth (stessa password `Password123!`
+    per tutti, dato che l'hash bcrypt del seed non e' riusabile con un
+    algoritmo di hashing diverso) e popola Firestore rimappando gli id
+    numerici del vecchio json-server sui nuovi id (uid Firebase per gli
+    utenti, id documento auto-generati per il resto).
+  - **Id ora stringhe, non numeri**: due punti che facevano `Number(id)` sui
+    parametri di route (`ProfilePage.jsx`, `MessagesPage.jsx`) sono stati
+    corretti a usare la stringa cosi' com'e' — un residuo dell'assunzione
+    "id numerico" di json-server che con gli uid/id-documento di Firebase
+    (stringhe) avrebbe rotto silenziosamente i confronti `===`.
+  - **package.json**: rimossi `axios` (poi re-aggiunto: serve ancora a
+    `newsService.js`, unico consumer rimasto, indipendente da questa
+    migrazione), `express`, `json-server`, `json-server-auth`, `jsonwebtoken`,
+    `socket.io`/`socket.io-client`, `concurrently` (non serve piu' avviare
+    due processi). Aggiunti `firebase` (client SDK) e `firebase-admin`
+    (solo per lo script di seed, devDependency). Script `server`/`dev:all`
+    rimossi, nuovo script `seed`.
+  - **Non verificato in questa sessione**: nessun progetto Firebase reale
+    disponibile per testare end-to-end (login, realtime multi-utente,
+    upload, regole di sicurezza) — solo lint e build. Vedi "Prossimi passi
+    possibili".
 - **2026-07-22** — Popover profilo (`UserHoverCard.jsx`): `delay.hide`
   100ms troppo corto per raggiungere e cliccare "Vedi profilo" col mouse —
   react-bootstrap `OverlayTrigger` non tiene aperto l'overlay quando il

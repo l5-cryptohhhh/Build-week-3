@@ -1,0 +1,106 @@
+rules_version = '2';
+
+// Regole di sicurezza Firestore: sostituiscono server/routes.json (permessi
+// 640/660 di json-server-auth). A differenza di quel modello, qui la
+// proprieta' puo' essere verificata su piu' campi (participant1Id/
+// participant2Id per le conversazioni, userId del messaggio confrontato coi
+// due partecipanti) - risolve il limite noto "autorizzazione solo
+// client-side" di CHECKPOINT.md per messages/conversations.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerId) {
+      return isSignedIn() && request.auth.uid == ownerId;
+    }
+
+    function isParticipant(conversation) {
+      return isSignedIn() &&
+        (request.auth.uid == conversation.participant1Id || request.auth.uid == conversation.participant2Id);
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId);
+      allow delete: if false;
+    }
+
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    match /comments/{commentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    match /likes/{likeId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    match /follows/{followId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    match /conversations/{conversationId} {
+      // Read/create si basano su `participantIds` (lo stesso campo su cui
+      // filtra la query client, es. useConversationsRealtime), non su
+      // participant1Id/participant2Id: una query "list" di Firestore viene
+      // negata in blocco se il campo controllato dalla regola non coincide
+      // con quello del filtro, anche se la regola non usa un get() - stesso
+      // principio gia' applicato a messages (vedi sotto), qui inizialmente
+      // dimenticato.
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participantIds;
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participantIds;
+      allow update, delete: if false;
+    }
+
+    match /messages/{messageId} {
+      // Read/update si basano su `participantIds` (copiato dalla
+      // conversazione sul messaggio stesso al momento dell'invio, vedi
+      // messagesService.sendMessage), non su un get() alla conversazione: le
+      // query "list" di Firestore (usate per il realtime onSnapshot) non
+      // possono essere garantite conformi da una regola che dipende da un
+      // documento esterno - un get() qui avrebbe fatto fallire ogni listener
+      // sull'intera collection `messages` con permission-denied.
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participantIds;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.auth.uid in request.resource.data.participantIds
+        && isParticipant(get(/databases/$(database)/documents/conversations/$(request.resource.data.conversationId)).data);
+      // Il mittente puo' modificare/eliminare il proprio messaggio; l'altro
+      // partecipante puo' solo marcarlo come letto (unico campo toccabile).
+      allow update: if isSignedIn() && request.auth.uid in resource.data.participantIds
+        && (isOwner(resource.data.userId) || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']));
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    match /notifications/{notificationId} {
+      allow read, delete: if isOwner(resource.data.userId);
+      // Notifiche create client-side (senza Cloud Functions): chi compie
+      // l'azione (like/commento/messaggio/follow) scrive la notifica per il
+      // destinatario, mai per se stesso.
+      allow create: if isSignedIn()
+        && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.userId != request.auth.uid;
+      allow update: if isOwner(resource.data.userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+    }
+
+    match /presence/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
+    }
+  }
+}

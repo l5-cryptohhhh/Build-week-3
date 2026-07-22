@@ -8,8 +8,8 @@ import {
   removeComment,
   selectCommentsForPost,
   selectCommentsStatusForPost,
-  selectCommentsPageForPost,
-  selectCommentsTotalForPost,
+  selectCommentsCursorForPost,
+  selectCommentsHasMoreForPost,
 } from '../../features/comments/commentsSlice'
 import { selectUserById } from '../../features/users/usersSlice'
 import { selectCurrentUser } from '../../features/auth/authSlice'
@@ -48,19 +48,17 @@ export default function CommentList({ postId }) {
   const dispatch = useDispatch()
   const comments = useSelector(selectCommentsForPost(postId), shallowEqual)
   const status = useSelector(selectCommentsStatusForPost(postId))
-  const page = useSelector(selectCommentsPageForPost(postId))
-  const totalCount = useSelector(selectCommentsTotalForPost(postId))
+  const cursor = useSelector(selectCommentsCursorForPost(postId))
+  const hasMore = useSelector(selectCommentsHasMoreForPost(postId))
   const currentUser = useSelector(selectCurrentUser)
 
   useEffect(() => {
-    dispatch(fetchComments({ postId, page: 1 }))
+    dispatch(fetchComments({ postId }))
   }, [dispatch, postId])
 
   const handleAddComment = (content) => {
     dispatch(addComment({ postId, userId: currentUser.id, content }))
   }
-
-  const hasMore = comments.length < totalCount
 
   return (
     <div className="mt-3 border-top pt-3">
@@ -80,7 +78,7 @@ export default function CommentList({ postId }) {
             size="sm"
             variant="outline-secondary"
             disabled={status === 'loading'}
-            onClick={() => dispatch(fetchComments({ postId, page: page + 1 }))}
+            onClick={() => dispatch(fetchComments({ postId, cursor }))}
           >
             {status === 'loading' ? 'Caricamento...' : 'Carica altri commenti'}
           </Button>

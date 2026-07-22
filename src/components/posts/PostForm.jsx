@@ -1,12 +1,23 @@
 import { useRef, useState } from 'react'
+import { useSelector } from 'react-redux'
 import Form from 'react-bootstrap/Form'
 import Button from 'react-bootstrap/Button'
+import { getLinkType } from '../../utils/linkPreview'
+import { uploadPostMedia } from '../../api/storageService'
+import { selectCurrentUser } from '../../features/auth/authSlice'
 
-const MAX_PHOTO_BYTES = 3 * 1024 * 1024
+// Le foto vanno come base64 dentro il documento del post (niente Storage,
+// evita di dover collegare una carta di credito solo per questo, vedi
+// CHECKPOINT.md): limite ridotto per stare dentro il tetto di 1MB per
+// documento di Firestore, con margine per testo/altri campi. I video invece
+// restano su Firebase Storage (50MB non ci starebbe comunque in un
+// documento) - vedi handleSubmit.
+const MAX_PHOTO_BYTES = 700 * 1024
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024
 
-function isDataUrl(url) {
-  return Boolean(url) && url.startsWith('data:')
+function isUploadedMedia(url) {
+  const type = getLinkType(url)
+  return type === 'image' || type === 'video'
 }
 
 export default function PostForm({
@@ -18,14 +29,17 @@ export default function PostForm({
   isSubmitting = false,
   showImageField = false,
 }) {
+  const currentUser = useSelector(selectCurrentUser)
   const [content, setContent] = useState(initialContent)
-  const [linkUrl, setLinkUrl] = useState(isDataUrl(initialImageUrl) ? '' : initialImageUrl)
+  const [linkUrl, setLinkUrl] = useState(isUploadedMedia(initialImageUrl) ? '' : initialImageUrl)
   const [uploadedMedia, setUploadedMedia] = useState(() =>
-    isDataUrl(initialImageUrl)
-      ? { url: initialImageUrl, kind: initialImageUrl.startsWith('data:video') ? 'video' : 'image' }
+    isUploadedMedia(initialImageUrl)
+      ? { url: initialImageUrl, kind: getLinkType(initialImageUrl) }
       : null,
   )
+  const [pendingFile, setPendingFile] = useState(null)
   const [fileError, setFileError] = useState(null)
+  const [uploading, setUploading] = useState(false)
   const photoInputRef = useRef(null)
   const videoInputRef = useRef(null)
 
@@ -39,25 +53,43 @@ export default function PostForm({
     textarea.style.height = `${textarea.scrollHeight}px`
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     const trimmed = content.trim()
     if (!trimmed) return
-    onSubmit({ content: trimmed, imageUrl: uploadedMedia ? uploadedMedia.url : linkUrl.trim() })
-    if (!initialContent) {
-      setContent('')
-      setLinkUrl('')
-      setUploadedMedia(null)
-      setFileError(null)
+    try {
+      let imageUrl = uploadedMedia ? uploadedMedia.url : linkUrl.trim()
+      if (pendingFile) {
+        setUploading(true)
+        imageUrl = await uploadPostMedia(currentUser.id, pendingFile)
+        setUploading(false)
+      }
+      onSubmit({ content: trimmed, imageUrl })
+      if (!initialContent) {
+        setContent('')
+        setLinkUrl('')
+        setUploadedMedia(null)
+        setPendingFile(null)
+        setFileError(null)
+      }
+    } catch {
+      setUploading(false)
+      setFileError('Caricamento media non riuscito. Riprova.')
     }
   }
 
-  const readFileAsMedia = (file, maxBytes, label, kind) => {
+  // Anteprima locale immediata via data URL in entrambi i casi. Per le foto
+  // e' anche il valore finale (base64 dentro il documento, nessun upload).
+  // Per i video invece serve un upload reale su Storage: si marca il file
+  // come "pending" e lo si carica solo al submit (vedi handleSubmit), cosi'
+  // scegliere un video e poi annullare il post non consuma banda/quota.
+  const readFileAsMedia = (file, maxBytes, sizeLabel, kind) => {
     if (file.size > maxBytes) {
-      setFileError(`File troppo grande per ${label} (max ${Math.round(maxBytes / (1024 * 1024))}MB).`)
+      setFileError(`File troppo grande (max ${sizeLabel}).`)
       return
     }
     setFileError(null)
+    if (kind === 'video') setPendingFile(file)
     const reader = new FileReader()
     reader.onload = () => setUploadedMedia({ url: reader.result, kind })
     reader.readAsDataURL(file)
@@ -66,13 +98,13 @@ export default function PostForm({
   const handlePhotoChange = (event) => {
     const file = event.target.files[0]
     event.target.value = ''
-    if (file) readFileAsMedia(file, MAX_PHOTO_BYTES, 'le foto', 'image')
+    if (file) readFileAsMedia(file, MAX_PHOTO_BYTES, '700KB', 'image')
   }
 
   const handleVideoChange = (event) => {
     const file = event.target.files[0]
     event.target.value = ''
-    if (file) readFileAsMedia(file, MAX_VIDEO_BYTES, 'i video', 'video')
+    if (file) readFileAsMedia(file, MAX_VIDEO_BYTES, '50MB', 'video')
   }
 
   return (
@@ -116,7 +148,10 @@ export default function PostForm({
                 type="button"
                 className="position-absolute top-0 end-0 m-1 rounded-circle p-1 d-inline-flex align-items-center justify-content-center"
                 style={{ width: 28, height: 28 }}
-                onClick={() => setUploadedMedia(null)}
+                onClick={() => {
+                  setUploadedMedia(null)
+                  setPendingFile(null)
+                }}
                 title="Rimuovi"
               >
                 <i className="bi bi-x-lg"></i>
@@ -177,8 +212,8 @@ export default function PostForm({
             Annulla
           </Button>
         )}
-        <Button variant="primary" type="submit" disabled={isSubmitting || !content.trim()}>
-          {submitLabel}
+        <Button variant="primary" type="submit" disabled={isSubmitting || uploading || !content.trim()}>
+          {uploading ? 'Caricamento media...' : submitLabel}
         </Button>
       </div>
     </Form>

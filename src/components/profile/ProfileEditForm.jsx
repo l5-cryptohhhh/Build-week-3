@@ -5,8 +5,14 @@ import Button from 'react-bootstrap/Button'
 import { isValidUsername } from '../../utils/validators'
 import Avatar from '../common/Avatar'
 
-const MAX_AVATAR_BYTES = 2 * 1024 * 1024
-const MAX_COVER_BYTES = 2 * 1024 * 1024
+// Niente Firebase Storage per avatar/copertina (evita di dover collegare
+// una carta di credito al progetto solo per queste due immagini, vedi
+// CHECKPOINT.md): salvate come base64 direttamente nel documento utente.
+// Firestore impone un limite fisso di 1MB per documento e i due campi
+// condividono lo stesso doc: 300KB raw a testa (~400KB da base64, che
+// gonfia di ~4/3) per entrambi lascia margine per gli altri campi utente.
+const MAX_AVATAR_BYTES = 300 * 1024
+const MAX_COVER_BYTES = 300 * 1024
 
 function readImageFile(file, maxBytes) {
   return new Promise((resolve, reject) => {
@@ -15,7 +21,7 @@ function readImageFile(file, maxBytes) {
       return
     }
     if (file.size > maxBytes) {
-      reject(new Error("L'immagine supera la dimensione massima di 2MB."))
+      reject(new Error(`L'immagine supera la dimensione massima di ${Math.round(maxBytes / 1024)}KB.`))
       return
     }
     const reader = new FileReader()
@@ -121,7 +127,7 @@ export default function ProfileEditForm({ show, user, onClose, onSave, isSaving 
                 </Button>
               )}
             </div>
-            <Form.Text className="text-secondary">Max 2MB.</Form.Text>
+            <Form.Text className="text-secondary">Max 300KB.</Form.Text>
           </Form.Group>
           <Form.Group className="mb-3" controlId="editFullName">
             <Form.Label>Nome completo</Form.Label>
@@ -164,7 +170,7 @@ export default function ProfileEditForm({ show, user, onClose, onSave, isSaving 
               </div>
             </div>
             <Form.Text className="text-secondary">
-              Scegli un file dal tuo dispositivo (max 2MB). Verra salvato insieme al profilo.
+              Scegli un file dal tuo dispositivo (max 300KB). Verra salvato insieme al profilo.
             </Form.Text>
           </Form.Group>
         </Modal.Body>

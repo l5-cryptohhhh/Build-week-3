@@ -14,9 +14,9 @@ import { selectCurrentUser } from '../../features/auth/authSlice'
 import { updatePost, deletePost, toggleLike, selectLikesForPost } from '../../features/posts/postsSlice'
 import { updateProfile } from '../../features/users/usersSlice'
 import {
-  fetchComments,
-  selectCommentsStatusForPost,
-  selectCommentsTotalForPost,
+  fetchCommentsCount,
+  selectCommentsCountForPost,
+  selectCommentsCountStatusForPost,
 } from '../../features/comments/commentsSlice'
 import { formatRelativeTime } from '../../utils/dateFormat'
 import { getLinkType, getYoutubeEmbedUrl } from '../../utils/linkPreview'
@@ -27,8 +27,8 @@ export default function PostCard({ post }) {
   const author = useSelector(selectUserById(post.userId))
   const currentUser = useSelector(selectCurrentUser)
   const likes = useSelector(selectLikesForPost(post.id), shallowEqual)
-  const commentsTotal = useSelector(selectCommentsTotalForPost(post.id))
-  const commentsStatus = useSelector(selectCommentsStatusForPost(post.id))
+  const commentsTotal = useSelector(selectCommentsCountForPost(post.id))
+  const commentsCountStatus = useSelector(selectCommentsCountStatusForPost(post.id))
   const [isEditing, setIsEditing] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [isPopping, setIsPopping] = useState(false)
@@ -39,13 +39,14 @@ export default function PostCard({ post }) {
   const isSaved = savedPostIds.includes(post.id)
 
   // Il conteggio commenti deve comparire anche prima di aprire la lista
-  // (come i like): si scarica la prima pagina di commenti al montaggio del
-  // post invece che solo all'apertura di CommentList.
+  // (come i like): una query di conteggio (getCountFromServer, vedi
+  // commentsService) invece di scaricare la prima pagina di contenuto solo
+  // per contare le righe.
   useEffect(() => {
-    if (commentsStatus === 'idle') {
-      dispatch(fetchComments({ postId: post.id, page: 1 }))
+    if (commentsCountStatus === 'idle') {
+      dispatch(fetchCommentsCount(post.id))
     }
-  }, [dispatch, post.id, commentsStatus])
+  }, [dispatch, post.id, commentsCountStatus])
 
   const handleUpdate = ({ content, imageUrl }) => {
     dispatch(

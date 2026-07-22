@@ -56,7 +56,7 @@ export default function SearchPage() {
         />
       ) : (
         <Tabs defaultActiveKey="users" className="mb-3">
-          <Tab eventKey="users" title={`Utenti (${users.totalCount})`}>
+          <Tab eventKey="users" title={`Utenti (${users.items.length}${users.hasMore ? '+' : ''})`}>
             {users.status === 'loading' && users.items.length === 0 ? (
               <>
                 <RowSkeleton avatarSize={44} lines={2} />
@@ -69,7 +69,7 @@ export default function SearchPage() {
                 {users.items.map((user) => (
                   <UserResultItem key={user.id} user={user} />
                 ))}
-                {users.items.length < users.totalCount && (
+                {users.hasMore && (
                   <div className="text-center mt-2">
                     <Button
                       variant="outline-primary"
@@ -84,7 +84,7 @@ export default function SearchPage() {
               </div>
             )}
           </Tab>
-          <Tab eventKey="posts" title={`Post (${posts.totalCount})`}>
+          <Tab eventKey="posts" title={`Post (${posts.items.length}${posts.hasMore ? '+' : ''})`}>
             {posts.status === 'loading' && posts.items.length === 0 ? (
               <PostCardSkeleton />
             ) : posts.items.length === 0 ? (
@@ -94,7 +94,7 @@ export default function SearchPage() {
                 {posts.items.map((post) => (
                   <PostCard key={post.id} post={post} />
                 ))}
-                {posts.items.length < posts.totalCount && (
+                {posts.hasMore && (
                   <div className="text-center mb-3">
                     <Button
                       variant="outline-primary"
