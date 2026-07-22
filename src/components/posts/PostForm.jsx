@@ -29,6 +29,16 @@ export default function PostForm({
   const photoInputRef = useRef(null)
   const videoInputRef = useRef(null)
 
+  const textareaRef = useRef(null)
+
+  const handleChange = (event) => {
+    setContent(event.target.value)
+
+    const textarea = textareaRef.current
+    textarea.style.height = 'auto'
+    textarea.style.height = `${textarea.scrollHeight}px`
+  }
+
   const handleSubmit = (event) => {
     event.preventDefault()
     const trimmed = content.trim()
@@ -69,11 +79,16 @@ export default function PostForm({
     <Form onSubmit={handleSubmit}>
       <Form.Group className="mb-2" controlId="postContent">
         <Form.Control
+          ref={textareaRef}
           as="textarea"
           rows={3}
           placeholder="Condividi un aggiornamento, un traguardo, un'idea..."
           value={content}
-          onChange={(event) => setContent(event.target.value)}
+          onChange={handleChange}
+          style={{
+            resize: 'none',
+            overflow: 'hidden',
+          }}
           required
         />
       </Form.Group>
