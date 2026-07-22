@@ -212,6 +212,99 @@ duplicare utenti gia' esistenti (verifica per email prima di creare).
 
 ## Changelog
 
+- **2026-07-22** — Verifica del perche' le reaction sui commenti (voce
+  precedente) non comparivano: confermato in browser reale che il problema
+  e' **`firestore.rules` non ancora pubblicato sul progetto Firebase live**
+  (la console mostra ripetutamente `permission-denied` sul listener
+  `commentLikes` sia in lettura che in scrittura, quindi il click sulla
+  reaction fallisce silenziosamente — `toggleCommentLike` usa
+  `rejectWithValue`, nessun errore visibile in UI). Nessun fix di codice
+  possibile per questa parte: va pubblicata manualmente la regola
+  `/commentLikes/{likeId}` gia' presente in `firestore.rules` (Firebase
+  Console -> Firestore Database -> Regole -> incolla il contenuto del file
+  -> Pubblica).
+  - Durante la verifica e' emerso pero' un **bug reale preesistente** in
+    `commentsSlice.js`, non legato alle reaction ma scoperto grazie ai test
+    ripetuti: `getPostState` inizializzava lo stato per-postId con
+    `{ ...initialPostState }`, uno *shallow copy* di un oggetto condiviso a
+    livello di modulo — l'array `items` restava lo stesso riferimento
+    condiviso tra tutti i postId non ancora "fetchati". Il primo
+    `commentReceived` (listener realtime globale, arriva per qualunque post
+    dell'app) su un postId nuovo mutava quell'array con `.push()`; Immer lo
+    congela (`autoFreeze`, attivo in dev) a fine reducer; il **secondo**
+    postId nuovo che riceveva un commento condivideva lo stesso riferimento
+    ormai congelato, e il suo `.push()` crashava con `TypeError: Cannot add
+    property 1, object is not extensible` (visto dal vivo con Playwright
+    dopo un reload di pagina, due post diversi con commenti quasi in
+    contemporanea). Fix: `getPostState` ora crea un oggetto letterale (e un
+    array `items` nuovo) ad ogni chiamata invece di spargere una costante di
+    modulo. Verificato che il crash non si ripete piu' con lo stesso
+    scenario di test. Lint e build puliti.
+- **2026-07-22** — Estesa la reaction stile LinkedIn (voce precedente, finora
+  solo sui post) anche ai commenti, su richiesta esplicita. `ReactionButton`
+  spostato da `components/posts/` a `components/common/` (riusato da
+  entrambi) e reso in due varianti: `variant="button"` (invariata, usata da
+  `PostCard`) e una nuova `variant="text"` per i commenti (etichetta piccola
+  colorata + conteggio, stile "Mi piace" da riga azioni di LinkedIn invece
+  del bottone pieno dei post — coerente con lo spazio ridotto di un
+  commento). Stessa popup/hover/tooltip (`.reaction-picker`) di prima,
+  nessuna nuova regola CSS.
+  - **Nuova collection Firestore `commentLikes`** (id deterministico
+    `commentId_userId`, stesso pattern di `likes`): `commentsService.js`
+    guadagna `fetchLikesForComments`/`likeComment`/`unlikeComment`;
+    `commentsSlice.js` guadagna `state.likes`, il thunk `toggleCommentLike`
+    (stessa logica toggle/sostituzione di `postsSlice.toggleLike` — cambiare
+    reaction elimina e ricrea perche' la rule nega l'update in place) e i
+    reducer realtime `commentLikeReceived`/`commentLikeRemovedFromSocket`
+    agganciati in `useActivityRealtime.js` con un quinto listener
+    `onSnapshot` sulla collection. `fetchComments` ora scarica anche i like
+    della pagina di commenti caricata (stesso pattern gia' usato da
+    `fetchPosts` per i like dei post). Chi reagisce a un commento riceve una
+    notifica type `'like'` (riusa l'icona/il flusso gia' esistente in
+    `NotificationBell`, nessun nuovo tipo da mappare).
+  - **`firestore.rules` aggiornato** con un nuovo match `/commentLikes/{likeId}`
+    (stesse regole di `/likes/{likeId}`: read=isSignedIn, create=owner,
+    update=false, delete=owner). **Da pubblicare manualmente sulla console
+    Firebase prima che le reaction sui commenti funzionino** (stesso limite
+    gia' noto per altre modifiche alle rules in questo progetto, non
+    automatizzabile da qui senza `scripts/serviceAccountKey.json`, che non
+    e' presente). Verificato in browser reale con Playwright: il popup di
+    reaction sul commento appare con lo stesso stile/hover/tooltip dei post
+    (confermato via screenshot), ma il click non persiste finche' le regole
+    non sono pubblicate (`permission-denied` sulla nuova collection, atteso
+    e coerente con le regole non ancora live sul progetto Firebase reale).
+    Post/commenti di prova creati durante la verifica ripuliti a fine test.
+    Lint e build puliti.
+- **2026-07-22** — Reaction stile LinkedIn al posto del semplice mi-piace
+  booleano, su richiesta esplicita con screenshot di riferimento (hover sul
+  bottone "Mi piace" apre una fila di 6 reaction — Mi piace/Festeggia/
+  Supporto/Adoro/Perspicace/Divertente — con scale-up e tooltip al passaggio
+  del mouse, stesso stile del riferimento). Nuovo `src/utils/reactions.js`
+  (config statica emoji/colore/etichetta per tipo) e nuovo componente
+  `ReactionButton.jsx` (popup ancorato con `position: absolute`, apertura al
+  `mouseEnter` e chiusura ritardata di 350ms via `setTimeout` per permettere
+  di spostare il mouse dal bottone al popup senza che si chiuda, stesso
+  principio del delay gia' usato in `UserHoverCard`). Stile del popup e
+  hover (`.reaction-picker`/`.reaction-picker-emoji`) aggiunto in
+  `index.css` senza commenti, coerente con la pulizia commenti gia' fatta in
+  quel file.
+  - **Modello dati**: il documento `likes` (id deterministico
+    `postId_userId`, invariato) guadagna un campo `type` (default `'like'`
+    per compatibilita' con i like esistenti che non ce l'hanno, letti come
+    `like.type || 'like'`). La security rule su `likes` ha `allow update: if
+    false` (mai toccata in questa modifica): cambiare tipo di reaction non
+    puo' quindi fare un update in place, `toggleLike` ora elimina il
+    documento esistente e ne ricrea uno nuovo con lo stesso id quando il
+    tipo cambia (due scritture invece di una, accettabile per un'azione
+    utente non ad alta frequenza). Cliccare la stessa reaction gia' attiva
+    la rimuove (comportamento toggle invariato rispetto a prima).
+  - Verificato in browser reale con Playwright (utente registrato al volo,
+    dato che le credenziali demo del seed non erano valide sul progetto
+    Firebase corrente): hover mostra il popup con lo stile del riferimento,
+    click imposta la reaction (bottone colorato secondo il tipo, conteggio
+    aggiornato), cambiare reaction sostituisce quella precedente senza
+    doppioni, ri-cliccare il bottone principale rimuove la reaction. Lint e
+    build puliti.
 - **2026-07-22** — Prima verifica end-to-end reale contro il progetto
   Firebase dell'utente (`linkclone-b7963`), con Playwright headless
   (registrazione, post, like, commenti, profilo, ricerca, messaggistica tra

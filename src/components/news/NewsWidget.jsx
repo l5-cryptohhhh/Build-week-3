@@ -4,8 +4,8 @@ import Skeleton from '../common/Skeleton'
 import { fetchNews } from '../../api/newsService'
 import { formatRelativeTime } from '../../utils/dateFormat'
 
-const PER_PAGE = 5
-const MAX_ITEMS = 10
+const PER_PAGE = 3
+const MAX_ITEMS = 7
 
 export default function NewsWidget() {
   const [items, setItems] = useState([])
@@ -38,7 +38,7 @@ export default function NewsWidget() {
     }
     setStatus('loadingMore')
     try {
-      const { results } = await fetchNews({ page: 2, perPage: PER_PAGE })
+      const { results } = await fetchNews({ page: 2, perPage: MAX_ITEMS - PER_PAGE })
       setItems((prev) => [...prev, ...results].slice(0, MAX_ITEMS))
       setExpanded(true)
       setStatus('succeeded')

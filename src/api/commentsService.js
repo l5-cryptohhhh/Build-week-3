@@ -11,15 +11,26 @@ import {
   where,
   orderBy,
   limit as fbLimit,
+  setDoc,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { notifyUser, actorName } from './notificationsService'
 
 const COMMENTS = 'comments'
 const POSTS = 'posts'
+const COMMENT_LIKES = 'commentLikes'
 
 function toComment(docSnap) {
   return { id: docSnap.id, ...docSnap.data() }
+}
+
+// Firestore 'in' accetta al massimo 10 valori per query (vedi stesso limite
+// in postsService): la fetch dei like di una pagina di commenti suddivide
+// l'elenco in gruppi da 10 e unisce i risultati.
+function chunk(array, size) {
+  const chunks = []
+  for (let i = 0; i < array.length; i += size) chunks.push(array.slice(i, i + size))
+  return chunks
 }
 
 // Il conteggio commenti va mostrato sotto ogni post anche prima di aprirne
@@ -80,4 +91,41 @@ export async function updateComment(id, changes) {
 export async function deleteComment(id) {
   await deleteDoc(doc(db, COMMENTS, id))
   return id
+}
+
+export async function fetchLikesForComments(commentIds) {
+  if (!commentIds.length) return []
+  const results = await Promise.all(
+    chunk(commentIds, 10).map((group) =>
+      getDocs(query(collection(db, COMMENT_LIKES), where('commentId', 'in', group))),
+    ),
+  )
+  return results.flatMap((snapshot) => snapshot.docs.map((d) => ({ id: d.id, ...d.data() })))
+}
+
+// Stesso pattern di postsService.likePost: id deterministico
+// `commentId_userId`, univoco per coppia commento/utente.
+export async function likeComment({ commentId, postId, userId, type = 'like' }) {
+  const id = `${commentId}_${userId}`
+  const like = { commentId, userId, type, createdAt: new Date().toISOString() }
+  await setDoc(doc(db, COMMENT_LIKES, id), like)
+
+  const commentSnapshot = await getDoc(doc(db, COMMENTS, commentId))
+  if (commentSnapshot.exists()) {
+    const comment = commentSnapshot.data()
+    await notifyUser({
+      userId: comment.userId,
+      actorId: userId,
+      type: 'like',
+      message: `${await actorName(userId)} ha reagito al tuo commento`,
+      postId: postId || comment.postId,
+    })
+  }
+
+  return { id, ...like }
+}
+
+export async function unlikeComment(likeId) {
+  await deleteDoc(doc(db, COMMENT_LIKES, likeId))
+  return likeId
 }

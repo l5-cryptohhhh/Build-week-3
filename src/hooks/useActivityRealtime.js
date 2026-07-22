@@ -13,6 +13,8 @@ import {
   commentReceived,
   commentUpdatedFromSocket,
   commentDeletedFromSocket,
+  commentLikeReceived,
+  commentLikeRemovedFromSocket,
 } from '../features/comments/commentsSlice'
 import { followReceived, followRemovedFromSocket } from '../features/follow/followSlice'
 
@@ -22,9 +24,9 @@ import { followReceived, followRemovedFromSocket } from '../features/follow/foll
 // Firestore, limitato alle ultime 200 righe: dedup by id gia' gestito dai
 // reducer *Received/*UpdatedFromSocket/*DeletedFromSocket (chi compie
 // l'azione riceve sia l'esito ottimistico del proprio thunk sia l'eco di
-// questo stesso snapshot). Le regole read=isSignedIn() su queste 4
-// collection non dipendono da altri documenti, quindi i listener "list"
-// senza filtri sono ammessi dalle Security Rules.
+// questo stesso snapshot). Le regole read=isSignedIn() su queste collection
+// non dipendono da altri documenti, quindi i listener "list" senza filtri
+// sono ammessi dalle Security Rules.
 const REALTIME_WINDOW = 200
 
 function watchCollection(name) {
@@ -63,6 +65,14 @@ export default function useActivityRealtime() {
       })
     })
 
+    const unsubscribeCommentLikes = onSnapshot(watchCollection('commentLikes'), (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        const like = { id: change.doc.id, ...change.doc.data() }
+        if (change.type === 'added') dispatch(commentLikeReceived(like))
+        if (change.type === 'removed') dispatch(commentLikeRemovedFromSocket({ id: like.id }))
+      })
+    })
+
     const unsubscribeFollows = onSnapshot(watchCollection('follows'), (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         const record = { id: change.doc.id, ...change.doc.data() }
@@ -75,6 +85,7 @@ export default function useActivityRealtime() {
       unsubscribePosts()
       unsubscribeComments()
       unsubscribeLikes()
+      unsubscribeCommentLikes()
       unsubscribeFollows()
     }
   }, [dispatch])
