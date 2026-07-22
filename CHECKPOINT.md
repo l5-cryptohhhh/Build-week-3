@@ -193,6 +193,14 @@ nel README.
 
 ## Changelog
 
+- **2026-07-22** — Popover profilo (`UserHoverCard.jsx`): `delay.hide`
+  100ms troppo corto per raggiungere e cliccare "Vedi profilo" col mouse —
+  react-bootstrap `OverlayTrigger` non tiene aperto l'overlay quando il
+  mouse ci entra sopra (nessun listener su Popover, solo sul trigger), la
+  hide programmata scatta comunque; portato a 400ms per lasciare il tempo
+  di spostarsi e cliccare. Rimossi anche tutti i commenti da `index.css`
+  su richiesta esplicita (unico file CSS del progetto). Lint/build puliti,
+  non testato in browser.
 - **2026-07-22** — Rollback `popperConfig={{ strategy: 'fixed' }}` su
   `ShareMenu.jsx`: staccava visivamente il menu dal bottone (posizionato
   contro il viewport invece che contro il trigger, "fluttuava" lontano

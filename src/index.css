@@ -13,10 +13,6 @@ body {
   background-color: #18191a;
 }
 
-/* Alcune utility Bootstrap (text-dark, bg-light, bg-white) sono pensate per
-   restare fisse anche in dark mode; qui le rendiamo consapevoli del tema
-   perche' nel progetto sono usate per lo stile di default, non per forzare
-   sempre il chiaro (es. link "come testo normale", bolle di commenti/messaggi). */
 [data-bs-theme='dark'] .text-dark {
   color: var(--bs-body-color) !important;
 }
@@ -33,7 +29,6 @@ body {
   display: none;
 }
 
-/* Micro-interazioni globali */
 .btn,
 .nav-link,
 .dropdown-item,
@@ -87,19 +82,11 @@ a {
   animation: bell-bump 0.6s ease;
 }
 
-/* Animazione rimossa (era fade+slide-up): qualunque valore di transform,
-   anche solo durante il playback, rende l'elemento containing block per i
-   discendenti `position: fixed` — rompeva il menu Condividi annidato nelle
-   card. Le classi restano nel markup (9 file) come no-op invece di
-   toccare ogni componente: elemento compare subito, fermo, senza transform. */
 .empty-state-fade,
 .animate-fade-in {
   animation: none;
 }
 
-/* Fade-up progressivo per immagini (avatar, post): l'immagine resta
-   trasparente finche' non e' effettivamente caricata, invece di comparire
-   di scatto o mostrare per un istante un riquadro vuoto. */
 .fade-img {
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -109,8 +96,6 @@ a {
   opacity: 1;
 }
 
-/* Indicatore utente online: pallino verde + anello che pulsa, sovrapposto
-   in basso a destra sull'avatar (vedi Avatar.jsx). */
 .online-dot {
   position: absolute;
   bottom: 2%;
@@ -144,8 +129,6 @@ a {
   }
 }
 
-/* Barra di caricamento globale (vedi TopLoadingBar), mostrata mentre almeno
-   una richiesta Redux e' in corso. */
 .top-loading-bar {
   position: fixed;
   top: 0;
@@ -167,7 +150,6 @@ a {
   }
 }
 
-/* Scrollbar personalizzata, consapevole del tema */
 * {
   scrollbar-width: thin;
   scrollbar-color: #c1c8d1 transparent;
@@ -211,7 +193,6 @@ a {
   color: var(--bs-secondary-color);
 }
 
-/* Skeleton loader */
 .skeleton {
   --skeleton-base: #e9ecef;
   --skeleton-highlight: #f6f7f8;
@@ -240,7 +221,6 @@ a {
   }
 }
 
-/* Brand logo (inClone) */
 .brand-logo {
   font-weight: 700;
   font-size: 1.4rem;
@@ -259,7 +239,6 @@ a {
   color: var(--bs-body-color);
 }
 
-/* Deterministic gradient fallback avatars */
 .avatar-gradient-0 { background: linear-gradient(135deg, #2563eb, #1e3a8a); }
 .avatar-gradient-1 { background: linear-gradient(135deg, #d6336c, #6741d9); }
 .avatar-gradient-2 { background: linear-gradient(135deg, #f59f00, #e8590c); }
@@ -267,13 +246,6 @@ a {
 .avatar-gradient-4 { background: linear-gradient(135deg, #7048e8, #ae3ec9); }
 .avatar-gradient-5 { background: linear-gradient(135deg, #495057, #212529); }
 
-/* Feed layout: sticky side columns. Altezza limitata + scroll interno
-   (invece di lasciar traboccare il contenuto sotto il viewport): senza
-   questo, con la sidebar sticky il contenuto in eccesso (es. il footer sotto
-   le 10 notizie espanse) finiva irraggiungibile, sempre coperto dal
-   MessengerWidget flottante in basso a destra (fixed, non si muove con lo
-   scroll). Il margine di 5.5rem in basso lascia spazio alla pillola del
-   widget messaggi. */
 .feed-sidebar {
   position: sticky;
   top: 5.5rem;
@@ -281,13 +253,6 @@ a {
   overflow-y: auto;
 }
 
-/* Fissato in basso a sinistra, allineato al bordo della colonna sidebar
-   (container centrato a 1128px, vedi MainLayout, + 12px di padding del
-   .container di Bootstrap) invece che al bordo vivo della finestra: cosi'
-   compare sempre sotto la card "Elementi salvati" senza spostarsi con lo
-   scroll (position: fixed, non sticky/static). Su viewport stretti dove il
-   container non e' largo 1128px, il max() lo tiene comunque a 1rem dal
-   bordo invece di uscire fuori schermo. */
 .app-toast-container {
   left: max(1rem, calc(50vw - 664px + 12px));
   bottom: 1.5rem;

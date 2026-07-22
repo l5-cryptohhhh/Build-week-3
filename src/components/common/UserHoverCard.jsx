@@ -46,7 +46,7 @@ export default function UserHoverCard({ user, children }) {
     <OverlayTrigger
       trigger={['hover', 'focus']}
       placement="bottom-start"
-      delay={{ show: 350, hide: 100 }}
+      delay={{ show: 350, hide: 1000 }}
       overlay={popover}
     >
       <span className="d-inline-block">{children}</span>
