@@ -9,6 +9,7 @@ import UserHoverCard from '../common/UserHoverCard'
 import PostForm from './PostForm'
 import CommentList from '../comments/CommentList'
 import ShareMenu from './ShareMenu'
+import ReactionButton from '../common/ReactionButton'
 import { selectUserById } from '../../features/users/usersSlice'
 import { selectCurrentUser } from '../../features/auth/authSlice'
 import { updatePost, deletePost, toggleLike, selectLikesForPost } from '../../features/posts/postsSlice'
@@ -34,7 +35,8 @@ export default function PostCard({ post }) {
   const [isPopping, setIsPopping] = useState(false)
 
   const isOwner = currentUser.id === post.userId
-  const isLiked = likes.some((like) => like.userId === currentUser.id)
+  const currentLike = likes.find((like) => like.userId === currentUser.id)
+  const currentReactionType = currentLike ? currentLike.type || 'like' : null
   const savedPostIds = currentUser.savedPostIds || []
   const isSaved = savedPostIds.includes(post.id)
 
@@ -64,8 +66,8 @@ export default function PostCard({ post }) {
     if (confirmed) dispatch(deletePost(post.id))
   }
 
-  const handleToggleLike = () => {
-    dispatch(toggleLike({ postId: post.id, userId: currentUser.id }))
+  const handleReact = (type) => {
+    dispatch(toggleLike({ postId: post.id, userId: currentUser.id, type }))
     setIsPopping(true)
     setTimeout(() => setIsPopping(false), 300)
   }
@@ -141,16 +143,12 @@ export default function PostCard({ post }) {
         )}
 
         <div className="d-flex align-items-center gap-3 text-secondary">
-          <button
-            type="button"
-            className={`btn btn-sm ${isLiked ? 'btn-primary' : 'btn-outline-primary'}`}
-            onClick={handleToggleLike}
-          >
-            <i
-              className={`bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'} me-1 ${isPopping ? 'like-pop' : ''}`}
-            ></i>
-            {likes.length}
-          </button>
+          <ReactionButton
+            reactionType={currentReactionType}
+            count={likes.length}
+            isPopping={isPopping}
+            onReact={handleReact}
+          />
           <button
             type="button"
             className="btn btn-sm btn-outline-secondary"
