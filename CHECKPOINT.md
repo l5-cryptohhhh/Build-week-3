@@ -193,6 +193,32 @@ nel README.
 
 ## Changelog
 
+- **2026-07-22** — Fix menu "Condividi" + nuova sezione "Esperienze" in
+  profilo. Il dropdown di `ShareMenu` (WhatsApp/Telegram/Instagram/TikTok/
+  YouTube) apriva verso il basso: ogni `PostCard` ha classe `.animate-fade-in`
+  che applica `transform: translateY(...)` (persistente a fine animazione,
+  `animation-fill-mode: both`), e un `transform` crea un nuovo stacking
+  context — il menu del post N, aprendosi sotto, finiva dentro lo stacking
+  context del proprio Card e veniva coperto dal Card successivo (che in DOM
+  arriva dopo, quindi dipinto sopra), invisibile/"rotto". Funzionava solo
+  sull'ultimo post perche' li' non c'e' un Card successivo a coprirlo. Fix
+  minimo: `<Dropdown drop="up">` in `ShareMenu.jsx`, il menu si apre sempre
+  verso l'alto (sul post precedente, che essendo prima nel DOM viene comunque
+  coperto correttamente) — nessun tocco alla CSS dell'animazione. Nuova
+  `ExperienceSection.jsx` (profilo, sopra "I miei post"): card con titolo
+  "Esperienze" + bottone "+" (solo sul proprio profilo) che apre un modale
+  (ruolo/azienda/periodo/descrizione) e aggiunge una entry; ogni voce ha un
+  bottone elimina. Dati salvati come nuovo campo `experiences` (array) sul
+  record utente, tramite lo stesso thunk `updateProfile`/`usersService.
+  updateUser` gia' usato da `ProfileEditForm` — nessuna nuova collection ne'
+  route, il permesso `640` su `users` in `routes.json` copre gia' il PATCH
+  dell'owner. Sezione nascosta sul profilo di altri utenti se non hanno
+  esperienze (niente box vuoto), sempre visibile sul proprio profilo. Modifica
+  della singola esperienza non implementata (solo aggiungi/elimina) — non
+  richiesta, da aggiungere replicando il pattern di `ProfileEditForm` se serve.
+  Verificato in browser reale (menu condividi su post non-ultimo, aggiunta
+  esperienza con toast "Profilo aggiornato" e persistenza). Lint e build
+  puliti.
 - **2026-07-21** — Fix ai 3 problemi trovati con un audit degli stati Redux
   (nessun cambio di shape, solo correttezza/perf). (1) `authSlice`: `logout`
   chiamava `authService.logout()` (side effect, pulisce il token da

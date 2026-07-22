@@ -26,7 +26,7 @@ export default function ShareMenu({ post }) {
   }
 
   return (
-    <Dropdown align="end" className="ms-auto">
+    <Dropdown drop="up" align="end" className="ms-auto">
       <Dropdown.Toggle variant="outline-secondary" size="sm" className="no-caret" id="share-menu">
         <i className="bi bi-share me-1"></i>
         Condividi
