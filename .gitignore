@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Local dev database (runtime state, seeded from server/db.seed.json)
+server/db.json
+
 # Chiave admin Firebase (accesso illimitato al progetto, a differenza del
 # firebaseConfig pubblico del client): mai da tracciare in git.
 scripts/serviceAccountKey.json
