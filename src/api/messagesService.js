@@ -1,55 +1,132 @@
-import httpClient from './httpClient'
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit as fbLimit,
+} from 'firebase/firestore'
+import { db } from '../firebase'
+import { notifyUser, actorName } from './notificationsService'
+
+const CONVERSATIONS = 'conversations'
+const MESSAGES = 'messages'
+
+function toDoc(docSnap) {
+  return { id: docSnap.id, ...docSnap.data() }
+}
 
 export async function fetchConversationsForUser(userId) {
-  const [asParticipant1, asParticipant2] = await Promise.all([
-    httpClient.get('/conversations', { params: { participant1Id: userId } }),
-    httpClient.get('/conversations', { params: { participant2Id: userId } }),
-  ])
-  return [...asParticipant1.data, ...asParticipant2.data]
+  // `participantIds` (array dei due id) e' un campo derivato, mantenuto solo
+  // per poter usare `array-contains` in una singola query invece delle due
+  // query separate per participant1Id/participant2Id di prima.
+  const snapshot = await getDocs(
+    query(collection(db, CONVERSATIONS), where('participantIds', 'array-contains', userId)),
+  )
+  return snapshot.docs.map(toDoc)
 }
 
 export async function createConversation({ participant1Id, participant2Id }) {
-  const { data } = await httpClient.post('/conversations', {
+  const payload = {
     participant1Id,
     participant2Id,
+    participantIds: [participant1Id, participant2Id],
     createdAt: new Date().toISOString(),
-  })
-  return data
+  }
+  const ref = await addDoc(collection(db, CONVERSATIONS), payload)
+  return { id: ref.id, ...payload }
 }
 
-export async function fetchMessages(conversationId, { page = 1, limit = 20 } = {}) {
-  // Pagina 1 = messaggi piu' recenti (ordine desc lato server); si inverte
-  // qui per restituire sempre l'ordine cronologico asc atteso dalla UI.
-  // Le pagine successive ("carica precedenti") vanno anteposte dal chiamante.
-  const { data, headers } = await httpClient.get('/messages', {
-    params: { conversationId, _sort: 'createdAt', _order: 'desc', _page: page, _limit: limit },
-  })
-  return { messages: data.reverse(), totalCount: Number(headers['x-total-count'] ?? data.length) }
+// Pagina 1 = nessun cursore, restituisce gli ultimi `limit` messaggi (ordine
+// desc lato query, invertito qui per l'ordine cronologico atteso dalla UI -
+// stesso comportamento di prima). Le pagine successive ("carica precedenti")
+// passano `cursor` = createdAt del messaggio piu' vecchio gia' caricato.
+// Il filtro su `participantIds` e' obbligatorio (non solo `conversationId`):
+// la regola di sicurezza su messages controlla quel campo, e Firestore nega
+// in blocco una query "list" se il filtro non lo include esplicitamente -
+// stesso principio del fix a firestore.rules per conversations.
+export async function fetchMessages(conversationId, { cursor, limit = 20, userId } = {}) {
+  const constraints = [
+    where('conversationId', '==', conversationId),
+    where('participantIds', 'array-contains', userId),
+    orderBy('createdAt', 'desc'),
+  ]
+  if (cursor) constraints.push(where('createdAt', '<', cursor))
+  constraints.push(fbLimit(limit))
+
+  const snapshot = await getDocs(query(collection(db, MESSAGES), ...constraints))
+  const messages = snapshot.docs.map(toDoc).reverse()
+  return {
+    messages,
+    hasMore: messages.length === limit,
+    nextCursor: messages.length ? messages[0].createdAt : null,
+  }
 }
 
 export async function sendMessage(message) {
-  const { data } = await httpClient.post('/messages', message)
-  return data
+  const conversationSnapshot = await getDoc(doc(db, CONVERSATIONS, message.conversationId))
+  if (!conversationSnapshot.exists()) {
+    throw new Error('Conversazione non trovata.')
+  }
+  const conversation = conversationSnapshot.data()
+
+  // `participantIds` copiato dalla conversazione: le regole di sicurezza e
+  // il listener realtime globale sui messaggi (useConversationsRealtime)
+  // filtrano su questo campo del messaggio stesso, senza dover risalire
+  // alla conversazione con un get() - vedi commento in firestore.rules.
+  const payload = {
+    ...message,
+    participantIds: conversation.participantIds,
+    createdAt: new Date().toISOString(),
+  }
+  const ref = await addDoc(collection(db, MESSAGES), payload)
+  const created = { id: ref.id, ...payload }
+
+  const recipientId =
+    conversation.participant1Id === message.userId
+      ? conversation.participant2Id
+      : conversation.participant1Id
+  await notifyUser({
+    userId: recipientId,
+    actorId: message.userId,
+    type: 'message',
+    message: `${await actorName(message.userId)} ti ha inviato un messaggio`,
+    conversationId: message.conversationId,
+  })
+
+  return created
 }
 
 export async function markMessageRead(id) {
-  const { data } = await httpClient.patch(`/messages/${id}`, { read: true })
-  return data
+  await updateDoc(doc(db, MESSAGES, id), { read: true })
+  const snapshot = await getDoc(doc(db, MESSAGES, id))
+  return toDoc(snapshot)
 }
 
 export async function fetchUnreadCount(conversationId, userId) {
-  const { data } = await httpClient.get('/messages', {
-    params: { conversationId, read: false },
-  })
-  return data.filter((message) => message.userId !== userId).length
+  const snapshot = await getDocs(
+    query(
+      collection(db, MESSAGES),
+      where('conversationId', '==', conversationId),
+      where('participantIds', 'array-contains', userId),
+      where('read', '==', false),
+    ),
+  )
+  return snapshot.docs.filter((d) => d.data().userId !== userId).length
 }
 
 export async function updateMessage(id, changes) {
-  const { data } = await httpClient.patch(`/messages/${id}`, changes)
-  return data
+  await updateDoc(doc(db, MESSAGES, id), changes)
+  const snapshot = await getDoc(doc(db, MESSAGES, id))
+  return toDoc(snapshot)
 }
 
 export async function deleteMessage(id) {
-  await httpClient.delete(`/messages/${id}`)
+  await deleteDoc(doc(db, MESSAGES, id))
   return id
 }

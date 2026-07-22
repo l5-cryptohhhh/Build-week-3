@@ -17,8 +17,8 @@ import {
   markMessageAsRead,
   selectMessagesForConversation,
   selectMessagesStatus,
-  selectMessagesPageForConversation,
-  selectMessagesTotalForConversation,
+  selectMessagesCursorForConversation,
+  selectMessagesHasMoreForConversation,
   selectConversations,
   selectConversationsStatus,
   conversationMarkedRead,
@@ -36,8 +36,8 @@ export default function ConversationView({ conversationId, compact = false, onCl
   const currentUser = useSelector(selectCurrentUser)
   const messages = useSelector(selectMessagesForConversation(conversationId), shallowEqual)
   const status = useSelector(selectMessagesStatus)
-  const page = useSelector(selectMessagesPageForConversation(conversationId))
-  const totalCount = useSelector(selectMessagesTotalForConversation(conversationId))
+  const cursor = useSelector(selectMessagesCursorForConversation(conversationId))
+  const hasMore = useSelector(selectMessagesHasMoreForConversation(conversationId))
   const conversations = useSelector(selectConversations)
   const conversationsStatus = useSelector(selectConversationsStatus)
   const bottomRef = useRef(null)
@@ -58,7 +58,7 @@ export default function ConversationView({ conversationId, compact = false, onCl
 
   useEffect(() => {
     if (conversation) {
-      dispatch(fetchMessages({ conversationId, page: 1 }))
+      dispatch(fetchMessages({ conversationId }))
       dispatch(conversationMarkedRead(conversationId))
     }
   }, [dispatch, conversationId, conversation])
@@ -86,7 +86,7 @@ export default function ConversationView({ conversationId, compact = false, onCl
   const handleLoadPrevious = () => {
     if (scrollRef.current) prevScrollHeightRef.current = scrollRef.current.scrollHeight
     isLoadingMoreRef.current = true
-    dispatch(fetchMessages({ conversationId, page: page + 1 }))
+    dispatch(fetchMessages({ conversationId, cursor }))
   }
 
   if (conversationsStatus === 'loading' && !conversation) {
@@ -130,8 +130,6 @@ export default function ConversationView({ conversationId, compact = false, onCl
       </div>
     )
   }
-
-  const hasMore = messages.length < totalCount
 
   return (
     <div className="d-flex flex-column" style={{ height }}>

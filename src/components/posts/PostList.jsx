@@ -10,9 +10,9 @@ import {
   selectAllPosts,
   selectPostsStatus,
   selectPostsError,
-  selectPostsPage,
+  selectPostsCursor,
   selectPostsLimit,
-  selectPostsTotalCount,
+  selectPostsHasMore,
 } from '../../features/posts/postsSlice'
 
 export default function PostList() {
@@ -20,16 +20,16 @@ export default function PostList() {
   const posts = useSelector(selectAllPosts)
   const status = useSelector(selectPostsStatus)
   const error = useSelector(selectPostsError)
-  const page = useSelector(selectPostsPage)
+  const cursor = useSelector(selectPostsCursor)
   const limit = useSelector(selectPostsLimit)
-  const totalCount = useSelector(selectPostsTotalCount)
+  const hasMore = useSelector(selectPostsHasMore)
 
   useEffect(() => {
-    dispatch(fetchPosts({ page: 1, limit }))
+    dispatch(fetchPosts({ limit }))
   }, [dispatch, limit])
 
   const handleLoadMore = () => {
-    dispatch(fetchPosts({ page: page + 1, limit }))
+    dispatch(fetchPosts({ cursor, limit }))
   }
 
   if (status === 'loading' && posts.length === 0) {
@@ -43,7 +43,7 @@ export default function PostList() {
   }
 
   if (status === 'failed' && posts.length === 0) {
-    return <ErrorAlert message={error} onRetry={() => dispatch(fetchPosts({ page: 1, limit }))} />
+    return <ErrorAlert message={error} onRetry={() => dispatch(fetchPosts({ limit }))} />
   }
 
   if (status === 'succeeded' && posts.length === 0) {
@@ -55,8 +55,6 @@ export default function PostList() {
       />
     )
   }
-
-  const hasMore = posts.length < totalCount
 
   return (
     <div>

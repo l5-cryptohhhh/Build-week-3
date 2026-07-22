@@ -23,11 +23,11 @@ export default function MessagesPage() {
   return (
     <Row className="g-3">
       <Col md={4} className={conversationId ? 'd-none d-md-block' : ''}>
-        <ConversationList activeConversationId={conversationId ? Number(conversationId) : null} />
+        <ConversationList activeConversationId={conversationId || null} />
       </Col>
       <Col md={8} className={!conversationId ? 'd-none d-md-block' : ''}>
         {conversationId ? (
-          <ConversationView conversationId={Number(conversationId)} />
+          <ConversationView conversationId={conversationId} />
         ) : (
           <EmptyState
             icon="bi-chat-square-text"

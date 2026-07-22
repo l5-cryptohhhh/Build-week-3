@@ -5,13 +5,13 @@ const COMMENTS_LIMIT = 10
 
 export const fetchComments = createAsyncThunk(
   'comments/fetchComments',
-  async ({ postId, page = 1 }, { rejectWithValue }) => {
+  async ({ postId, cursor }, { rejectWithValue }) => {
     try {
-      const { comments, totalCount } = await commentsService.fetchCommentsByPost(postId, {
-        page,
+      const { comments, hasMore, nextCursor } = await commentsService.fetchCommentsByPost(postId, {
+        cursor,
         limit: COMMENTS_LIMIT,
       })
-      return { postId, comments, totalCount, page }
+      return { postId, comments, hasMore, nextCursor, isFirstPage: !cursor }
     } catch (err) {
       return rejectWithValue(err.message)
     }
@@ -58,11 +58,28 @@ export const removeComment = createAsyncThunk(
   },
 )
 
-const initialPostState = { items: [], page: 1, totalCount: 0 }
+// Conteggio separato dalla lista paginata (vedi countCommentsForPost): serve
+// a mostrare il numero di commenti sotto un post anche prima di aprirne la
+// lista, senza scaricarne il contenuto.
+export const fetchCommentsCount = createAsyncThunk(
+  'comments/fetchCommentsCount',
+  async (postId, { rejectWithValue }) => {
+    try {
+      const count = await commentsService.countCommentsForPost(postId)
+      return { postId, count }
+    } catch (err) {
+      return rejectWithValue(err.message)
+    }
+  },
+)
+
+const initialPostState = { items: [], cursor: null, hasMore: true }
 
 const initialState = {
   byPostId: {},
   statusByPostId: {},
+  countByPostId: {},
+  countStatusByPostId: {},
   error: null,
 }
 
@@ -76,10 +93,11 @@ const commentsSlice = createSlice({
   initialState,
   reducers: {
     commentReceived(state, action) {
-      const postState = getPostState(state, action.payload.postId)
+      const postId = action.payload.postId
+      const postState = getPostState(state, postId)
       if (postState.items.some((comment) => comment.id === action.payload.id)) return
       postState.items.push(action.payload)
-      postState.totalCount += 1
+      if (state.countByPostId[postId] !== undefined) state.countByPostId[postId] += 1
     },
     commentUpdatedFromSocket(state, action) {
       const postState = getPostState(state, action.payload.postId)
@@ -87,10 +105,13 @@ const commentsSlice = createSlice({
       if (index !== -1) postState.items[index] = action.payload
     },
     commentDeletedFromSocket(state, action) {
-      const postState = getPostState(state, action.payload.postId)
+      const postId = action.payload.postId
+      const postState = getPostState(state, postId)
       if (!postState.items.some((comment) => comment.id === action.payload.id)) return
       postState.items = postState.items.filter((comment) => comment.id !== action.payload.id)
-      postState.totalCount = Math.max(0, postState.totalCount - 1)
+      if (state.countByPostId[postId] !== undefined) {
+        state.countByPostId[postId] = Math.max(0, state.countByPostId[postId] - 1)
+      }
     },
   },
   extraReducers: (builder) => {
@@ -99,11 +120,11 @@ const commentsSlice = createSlice({
         state.statusByPostId[action.meta.arg.postId] = 'loading'
       })
       .addCase(fetchComments.fulfilled, (state, action) => {
-        const { postId, comments, totalCount, page } = action.payload
+        const { postId, comments, hasMore, nextCursor, isFirstPage } = action.payload
         const postState = getPostState(state, postId)
-        postState.totalCount = totalCount
-        postState.page = page
-        postState.items = page === 1 ? comments : [...postState.items, ...comments]
+        postState.hasMore = hasMore
+        postState.cursor = nextCursor
+        postState.items = isFirstPage ? comments : [...postState.items, ...comments]
         state.statusByPostId[postId] = 'succeeded'
       })
       .addCase(fetchComments.rejected, (state, action) => {
@@ -111,9 +132,10 @@ const commentsSlice = createSlice({
         state.error = action.payload
       })
       .addCase(addComment.fulfilled, (state, action) => {
-        const postState = getPostState(state, action.payload.postId)
+        const postId = action.payload.postId
+        const postState = getPostState(state, postId)
         postState.items = [...postState.items, action.payload]
-        postState.totalCount += 1
+        if (state.countByPostId[postId] !== undefined) state.countByPostId[postId] += 1
       })
       .addCase(editComment.fulfilled, (state, action) => {
         const postState = getPostState(state, action.payload.postId)
@@ -121,9 +143,22 @@ const commentsSlice = createSlice({
         if (index !== -1) postState.items[index] = action.payload
       })
       .addCase(removeComment.fulfilled, (state, action) => {
-        const postState = getPostState(state, action.payload.postId)
+        const postId = action.payload.postId
+        const postState = getPostState(state, postId)
         postState.items = postState.items.filter((comment) => comment.id !== action.payload.id)
-        postState.totalCount = Math.max(0, postState.totalCount - 1)
+        if (state.countByPostId[postId] !== undefined) {
+          state.countByPostId[postId] = Math.max(0, state.countByPostId[postId] - 1)
+        }
+      })
+      .addCase(fetchCommentsCount.pending, (state, action) => {
+        state.countStatusByPostId[action.meta.arg] = 'loading'
+      })
+      .addCase(fetchCommentsCount.fulfilled, (state, action) => {
+        state.countByPostId[action.payload.postId] = action.payload.count
+        state.countStatusByPostId[action.payload.postId] = 'succeeded'
+      })
+      .addCase(fetchCommentsCount.rejected, (state, action) => {
+        state.countStatusByPostId[action.meta.arg] = 'failed'
       })
   },
 })
@@ -135,7 +170,11 @@ export const selectCommentsForPost = (postId) => (state) =>
   state.comments.byPostId[postId]?.items || []
 export const selectCommentsStatusForPost = (postId) => (state) =>
   state.comments.statusByPostId[postId] || 'idle'
-export const selectCommentsPageForPost = (postId) => (state) =>
-  state.comments.byPostId[postId]?.page || 1
-export const selectCommentsTotalForPost = (postId) => (state) =>
-  state.comments.byPostId[postId]?.totalCount || 0
+export const selectCommentsCursorForPost = (postId) => (state) =>
+  state.comments.byPostId[postId]?.cursor || null
+export const selectCommentsHasMoreForPost = (postId) => (state) =>
+  state.comments.byPostId[postId]?.hasMore ?? true
+export const selectCommentsCountForPost = (postId) => (state) =>
+  state.comments.countByPostId[postId] ?? 0
+export const selectCommentsCountStatusForPost = (postId) => (state) =>
+  state.comments.countStatusByPostId[postId] || 'idle'

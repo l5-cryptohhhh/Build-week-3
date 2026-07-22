@@ -4,11 +4,11 @@ import { searchPosts } from '../search/searchSlice'
 
 export const fetchPosts = createAsyncThunk(
   'posts/fetchPosts',
-  async ({ page = 1, limit = 5 } = {}, { rejectWithValue }) => {
+  async ({ cursor, limit = 5 } = {}, { rejectWithValue }) => {
     try {
-      const { posts, totalCount } = await postsService.fetchPosts({ page, limit })
+      const { posts, hasMore, nextCursor } = await postsService.fetchPosts({ cursor, limit })
       const likes = await postsService.fetchLikesForPosts(posts.map((post) => post.id))
-      return { posts, totalCount, likes, page }
+      return { posts, hasMore, nextCursor, likes, isFirstPage: !cursor }
     } catch (err) {
       return rejectWithValue(err.message)
     }
@@ -17,11 +17,15 @@ export const fetchPosts = createAsyncThunk(
 
 export const fetchFollowingFeed = createAsyncThunk(
   'posts/fetchFollowingFeed',
-  async ({ page = 1, limit = 5, followingIds }, { rejectWithValue }) => {
+  async ({ cursor, limit = 5, followingIds }, { rejectWithValue }) => {
     try {
-      const { posts, totalCount } = await postsService.fetchPosts({ page, limit, userIds: followingIds })
+      const { posts, hasMore, nextCursor } = await postsService.fetchPosts({
+        cursor,
+        limit,
+        userIds: followingIds,
+      })
       const likes = await postsService.fetchLikesForPosts(posts.map((post) => post.id))
-      return { posts, totalCount, likes, page }
+      return { posts, hasMore, nextCursor, likes, isFirstPage: !cursor }
     } catch (err) {
       return rejectWithValue(err.message)
     }
@@ -111,12 +115,12 @@ const initialState = {
   likes: [],
   status: 'idle',
   error: null,
-  page: 1,
+  cursor: null,
+  hasMore: true,
   limit: 5,
-  totalCount: 0,
   byUserId: {},
   statusByUserId: {},
-  followingFeed: { items: [], likes: [], page: 1, limit: 5, totalCount: 0, status: 'idle' },
+  followingFeed: { items: [], likes: [], cursor: null, hasMore: true, limit: 5, status: 'idle' },
   saved: { items: [], status: 'idle' },
 }
 
@@ -130,7 +134,6 @@ const postsSlice = createSlice({
     postReceived(state, action) {
       if (state.items.some((post) => post.id === action.payload.id)) return
       state.items.unshift(action.payload)
-      state.totalCount += 1
     },
     postUpdatedFromSocket(state, action) {
       const post = action.payload
@@ -145,7 +148,6 @@ const postsSlice = createSlice({
       const { id } = action.payload
       if (!state.items.some((post) => post.id === id)) return
       state.items = state.items.filter((post) => post.id !== id)
-      state.totalCount = Math.max(0, state.totalCount - 1)
       Object.keys(state.byUserId).forEach((userId) => {
         state.byUserId[userId] = state.byUserId[userId].filter((post) => post.id !== id)
       })
@@ -167,9 +169,9 @@ const postsSlice = createSlice({
       })
       .addCase(fetchPosts.fulfilled, (state, action) => {
         state.status = 'succeeded'
-        state.totalCount = action.payload.totalCount
-        state.page = action.payload.page
-        if (action.payload.page === 1) {
+        state.hasMore = action.payload.hasMore
+        state.cursor = action.payload.nextCursor
+        if (action.payload.isFirstPage) {
           state.items = action.payload.posts
           state.likes = action.payload.likes
         } else {
@@ -186,12 +188,11 @@ const postsSlice = createSlice({
       })
       .addCase(fetchFollowingFeed.fulfilled, (state, action) => {
         state.followingFeed.status = 'succeeded'
-        state.followingFeed.totalCount = action.payload.totalCount
-        state.followingFeed.page = action.payload.page
-        state.followingFeed.items =
-          action.payload.page === 1
-            ? action.payload.posts
-            : [...state.followingFeed.items, ...action.payload.posts]
+        state.followingFeed.hasMore = action.payload.hasMore
+        state.followingFeed.cursor = action.payload.nextCursor
+        state.followingFeed.items = action.payload.isFirstPage
+          ? action.payload.posts
+          : [...state.followingFeed.items, ...action.payload.posts]
         const existingLikeIds = new Set(state.likes.map((like) => like.id))
         action.payload.likes.forEach((like) => {
           if (!existingLikeIds.has(like.id)) state.likes.push(like)
@@ -222,7 +223,6 @@ const postsSlice = createSlice({
       })
       .addCase(createPost.fulfilled, (state, action) => {
         state.items.unshift(action.payload)
-        state.totalCount += 1
         const userId = action.payload.userId
         if (state.byUserId[userId]) {
           state.byUserId[userId] = [action.payload, ...state.byUserId[userId]]
@@ -247,7 +247,6 @@ const postsSlice = createSlice({
       })
       .addCase(deletePost.fulfilled, (state, action) => {
         state.items = state.items.filter((post) => post.id !== action.payload)
-        state.totalCount -= 1
         Object.keys(state.byUserId).forEach((userId) => {
           state.byUserId[userId] = state.byUserId[userId].filter(
             (post) => post.id !== action.payload,
@@ -293,9 +292,9 @@ export default postsSlice.reducer
 export const selectAllPosts = (state) => state.posts.items
 export const selectPostsStatus = (state) => state.posts.status
 export const selectPostsError = (state) => state.posts.error
-export const selectPostsPage = (state) => state.posts.page
+export const selectPostsCursor = (state) => state.posts.cursor
 export const selectPostsLimit = (state) => state.posts.limit
-export const selectPostsTotalCount = (state) => state.posts.totalCount
+export const selectPostsHasMore = (state) => state.posts.hasMore
 export const selectLikesForPost = (postId) => (state) =>
   state.posts.likes.filter((like) => like.postId === postId)
 export const selectPostsByUser = (userId) => (state) => state.posts.byUserId[userId] || []
