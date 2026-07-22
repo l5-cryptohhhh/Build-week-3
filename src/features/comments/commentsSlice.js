@@ -132,8 +132,14 @@ const commentsSlice = createSlice({
         state.error = action.payload
       })
       .addCase(addComment.fulfilled, (state, action) => {
+        // Dedup by id: Firestore echeggia la scrittura locale sul listener
+        // realtime (commentReceived) prima ancora che questo thunk si
+        // risolva (la promise di addDoc aspetta l'ack del server, il
+        // listener locale invece scatta subito sulla cache) - senza
+        // controllo, chi commenta vedrebbe il proprio commento due volte.
         const postId = action.payload.postId
         const postState = getPostState(state, postId)
+        if (postState.items.some((comment) => comment.id === action.payload.id)) return
         postState.items = [...postState.items, action.payload]
         if (state.countByPostId[postId] !== undefined) state.countByPostId[postId] += 1
       })

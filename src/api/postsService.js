@@ -66,12 +66,6 @@ export async function fetchPostsByUser(userId) {
   return snapshot.docs.map(toPost)
 }
 
-export async function fetchPostById(id) {
-  const snapshot = await getDoc(doc(db, POSTS, id))
-  if (!snapshot.exists()) throw new Error('Post non trovato.')
-  return toPost(snapshot)
-}
-
 export async function createPost(post) {
   const now = new Date().toISOString()
   const payload = {

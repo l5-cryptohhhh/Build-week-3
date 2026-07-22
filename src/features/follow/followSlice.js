@@ -77,7 +77,13 @@ const followSlice = createSlice({
       })
       .addCase(toggleFollow.fulfilled, (state, action) => {
         if (action.payload.following) {
-          state.items.push(action.payload.record)
+          // Dedup by id: il listener realtime (followReceived) puo'
+          // ricevere l'eco della scrittura locale prima ancora che questo
+          // thunk si risolva, altrimenti il follower risulterebbe doppio.
+          const record = action.payload.record
+          if (!state.items.some((item) => item.id === record.id)) {
+            state.items.push(record)
+          }
         } else {
           state.items = state.items.filter((record) => record.id !== action.payload.followId)
         }
