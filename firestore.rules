@@ -46,6 +46,13 @@ service cloud.firestore {
       allow delete: if isOwner(resource.data.userId);
     }
 
+    match /commentLikes/{likeId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
+      allow delete: if isOwner(resource.data.userId);
+    }
+
     match /follows/{followId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;

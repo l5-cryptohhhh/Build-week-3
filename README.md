@@ -97,7 +97,8 @@ Collection principali (vedi `firestore.rules` per i permessi esatti):
 | `users/{uid}` | doc id = uid di Firebase Auth; profilo esteso (username, bio, `savedPostIds`, `experiences`, ...) |
 | `posts` | `userId`, `content`/`contentLower` (per la ricerca), `imageUrl`, timestamp |
 | `comments` | `postId`, `userId`, `content` |
-| `likes` | id deterministico `postId_userId` (unicita' senza letture extra) |
+| `likes` | reaction sui post: id deterministico `postId_userId`, campo `type` (`like`/`celebrate`/`support`/`love`/`insightful`/`funny`, vedi `src/utils/reactions.js`) |
+| `commentLikes` | reaction sui commenti: stesso schema di `likes`, id deterministico `commentId_userId` |
 | `follows` | id deterministico `followerId_followingId` |
 | `conversations` | `participant1Id`/`participant2Id` + `participantIds` (array, per query `array-contains`) |
 | `messages` | `conversationId` + `participantIds` denormalizzato dalla conversazione (necessario perche' le Security Rules su query "list" non possono dipendere da un `get()` a un altro documento) |

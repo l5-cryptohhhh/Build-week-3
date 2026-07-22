@@ -91,19 +91,26 @@ export const deletePost = createAsyncThunk(
   },
 )
 
+// Un utente ha al piu' una reaction per post (stesso id deterministico
+// postId_userId di prima). La security rule su `likes` nega l'update
+// (`allow update: if false`), quindi cambiare tipo di reaction richiede
+// eliminare il documento esistente e ricrearlo, non un update in place.
 export const toggleLike = createAsyncThunk(
   'posts/toggleLike',
-  async ({ postId, userId }, { getState, rejectWithValue }) => {
+  async ({ postId, userId, type = 'like' }, { getState, rejectWithValue }) => {
     try {
       const existing = getState().posts.likes.find(
         (like) => like.postId === postId && like.userId === userId,
       )
-      if (existing) {
+      if (existing && (existing.type || 'like') === type) {
         await postsService.unlikePost(existing.id)
         return { postId, liked: false, likeId: existing.id }
       }
-      const like = await postsService.likePost({ postId, userId })
-      return { postId, liked: true, like }
+      if (existing) {
+        await postsService.unlikePost(existing.id)
+      }
+      const like = await postsService.likePost({ postId, userId, type })
+      return { postId, liked: true, like, replacedId: existing?.id }
     } catch (err) {
       return rejectWithValue(err.message)
     }
@@ -278,6 +285,12 @@ const postsSlice = createSlice({
       })
       .addCase(toggleLike.fulfilled, (state, action) => {
         if (action.payload.liked) {
+          // Cambiare tipo di reaction elimina il vecchio documento e ne crea
+          // uno nuovo con lo stesso id (vedi commento sul thunk): rimuove
+          // prima la copia vecchia dalla cache locale.
+          if (action.payload.replacedId) {
+            state.likes = state.likes.filter((like) => like.id !== action.payload.replacedId)
+          }
           // Dedup by id: il listener realtime (likeReceived) puo' ricevere
           // l'eco della scrittura locale prima ancora che questo thunk si
           // risolva, altrimenti il like risulterebbe conteggiato due volte.

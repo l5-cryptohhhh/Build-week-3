@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useDispatch, useSelector, shallowEqual } from 'react-redux'
 import Button from 'react-bootstrap/Button'
 import {
@@ -6,10 +6,12 @@ import {
   addComment,
   editComment,
   removeComment,
+  toggleCommentLike,
   selectCommentsForPost,
   selectCommentsStatusForPost,
   selectCommentsCursorForPost,
   selectCommentsHasMoreForPost,
+  selectLikesForComment,
 } from '../../features/comments/commentsSlice'
 import { selectUserById } from '../../features/users/usersSlice'
 import { selectCurrentUser } from '../../features/auth/authSlice'
@@ -21,7 +23,12 @@ import { requestConfirm } from '../../utils/confirm'
 function CommentRow({ comment, currentUser, postId }) {
   const dispatch = useDispatch()
   const author = useSelector(selectUserById(comment.userId))
+  const likes = useSelector(selectLikesForComment(comment.id), shallowEqual)
   const isOwn = currentUser.id === comment.userId
+  const [isPopping, setIsPopping] = useState(false)
+
+  const currentLike = likes.find((like) => like.userId === currentUser.id)
+  const currentReactionType = currentLike ? currentLike.type || 'like' : null
 
   const handleDelete = async () => {
     const confirmed = await requestConfirm({
@@ -32,6 +39,12 @@ function CommentRow({ comment, currentUser, postId }) {
     if (confirmed) dispatch(removeComment({ id: comment.id, postId }))
   }
 
+  const handleReact = (type) => {
+    dispatch(toggleCommentLike({ commentId: comment.id, postId, userId: currentUser.id, type }))
+    setIsPopping(true)
+    setTimeout(() => setIsPopping(false), 300)
+  }
+
   return (
     <CommentItem
       comment={comment}
@@ -40,6 +53,10 @@ function CommentRow({ comment, currentUser, postId }) {
       canDelete={isOwn}
       onEdit={(content) => dispatch(editComment({ id: comment.id, postId, content }))}
       onDelete={handleDelete}
+      reactionType={currentReactionType}
+      reactionCount={likes.length}
+      isPopping={isPopping}
+      onReact={handleReact}
     />
   )
 }

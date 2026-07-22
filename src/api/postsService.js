@@ -138,9 +138,9 @@ export async function fetchLikesForPosts(postIds) {
 // Id deterministico `postId_userId`: un like e' univoco per coppia
 // post/utente, evita letture extra per controllare l'esistenza prima di
 // scrivere (a differenza dell'id auto-incrementale di json-server).
-export async function likePost({ postId, userId }) {
+export async function likePost({ postId, userId, type = 'like' }) {
   const id = `${postId}_${userId}`
-  const like = { postId, userId, createdAt: new Date().toISOString() }
+  const like = { postId, userId, type, createdAt: new Date().toISOString() }
   await setDoc(doc(db, LIKES, id), like)
 
   const postSnapshot = await getDoc(doc(db, POSTS, postId))

@@ -11,7 +11,8 @@ export const fetchComments = createAsyncThunk(
         cursor,
         limit: COMMENTS_LIMIT,
       })
-      return { postId, comments, hasMore, nextCursor, isFirstPage: !cursor }
+      const likes = await commentsService.fetchLikesForComments(comments.map((comment) => comment.id))
+      return { postId, comments, likes, hasMore, nextCursor, isFirstPage: !cursor }
     } catch (err) {
       return rejectWithValue(err.message)
     }
@@ -73,18 +74,50 @@ export const fetchCommentsCount = createAsyncThunk(
   },
 )
 
-const initialPostState = { items: [], cursor: null, hasMore: true }
+// Un utente ha al piu' una reaction per commento (stesso principio di
+// postsSlice.toggleLike, vedi CHECKPOINT.md): la security rule su
+// `commentLikes` nega l'update, quindi cambiare tipo di reaction elimina il
+// documento esistente e ne ricrea uno con lo stesso id invece di un update
+// in place.
+export const toggleCommentLike = createAsyncThunk(
+  'comments/toggleCommentLike',
+  async ({ commentId, postId, userId, type = 'like' }, { getState, rejectWithValue }) => {
+    try {
+      const existing = getState().comments.likes.find(
+        (like) => like.commentId === commentId && like.userId === userId,
+      )
+      if (existing && (existing.type || 'like') === type) {
+        await commentsService.unlikeComment(existing.id)
+        return { commentId, liked: false, likeId: existing.id }
+      }
+      if (existing) {
+        await commentsService.unlikeComment(existing.id)
+      }
+      const like = await commentsService.likeComment({ commentId, postId, userId, type })
+      return { commentId, liked: true, like, replacedId: existing?.id }
+    } catch (err) {
+      return rejectWithValue(err.message)
+    }
+  },
+)
 
 const initialState = {
   byPostId: {},
   statusByPostId: {},
   countByPostId: {},
   countStatusByPostId: {},
+  likes: [],
   error: null,
 }
 
+// Ogni postId deve avere il proprio array `items`: un oggetto letterale
+// condiviso a livello di modulo (`{ ...initialPostState }`, shallow copy)
+// farebbe puntare tutti i postId non ancora fetchati allo stesso array,
+// che Immer congela (autoFreeze) dopo il primo reducer che lo tocca -
+// il primo `.push()` su un SECONDO postId che condivide quel riferimento
+// crasha con "Cannot add property, object is not extensible".
 function getPostState(state, postId) {
-  if (!state.byPostId[postId]) state.byPostId[postId] = { ...initialPostState }
+  if (!state.byPostId[postId]) state.byPostId[postId] = { items: [], cursor: null, hasMore: true }
   return state.byPostId[postId]
 }
 
@@ -112,6 +145,14 @@ const commentsSlice = createSlice({
       if (state.countByPostId[postId] !== undefined) {
         state.countByPostId[postId] = Math.max(0, state.countByPostId[postId] - 1)
       }
+      state.likes = state.likes.filter((like) => like.commentId !== action.payload.id)
+    },
+    commentLikeReceived(state, action) {
+      if (state.likes.some((like) => like.id === action.payload.id)) return
+      state.likes.push(action.payload)
+    },
+    commentLikeRemovedFromSocket(state, action) {
+      state.likes = state.likes.filter((like) => like.id !== action.payload.id)
     },
   },
   extraReducers: (builder) => {
@@ -126,6 +167,10 @@ const commentsSlice = createSlice({
         postState.cursor = nextCursor
         postState.items = isFirstPage ? comments : [...postState.items, ...comments]
         state.statusByPostId[postId] = 'succeeded'
+        const existingLikeIds = new Set(state.likes.map((like) => like.id))
+        action.payload.likes.forEach((like) => {
+          if (!existingLikeIds.has(like.id)) state.likes.push(like)
+        })
       })
       .addCase(fetchComments.rejected, (state, action) => {
         state.statusByPostId[action.meta.arg.postId] = 'failed'
@@ -155,6 +200,20 @@ const commentsSlice = createSlice({
         if (state.countByPostId[postId] !== undefined) {
           state.countByPostId[postId] = Math.max(0, state.countByPostId[postId] - 1)
         }
+        state.likes = state.likes.filter((like) => like.commentId !== action.payload.id)
+      })
+      .addCase(toggleCommentLike.fulfilled, (state, action) => {
+        if (action.payload.liked) {
+          if (action.payload.replacedId) {
+            state.likes = state.likes.filter((like) => like.id !== action.payload.replacedId)
+          }
+          const like = action.payload.like
+          if (!state.likes.some((item) => item.id === like.id)) {
+            state.likes.push(like)
+          }
+        } else {
+          state.likes = state.likes.filter((like) => like.id !== action.payload.likeId)
+        }
       })
       .addCase(fetchCommentsCount.pending, (state, action) => {
         state.countStatusByPostId[action.meta.arg] = 'loading'
@@ -169,7 +228,13 @@ const commentsSlice = createSlice({
   },
 })
 
-export const { commentReceived, commentUpdatedFromSocket, commentDeletedFromSocket } = commentsSlice.actions
+export const {
+  commentReceived,
+  commentUpdatedFromSocket,
+  commentDeletedFromSocket,
+  commentLikeReceived,
+  commentLikeRemovedFromSocket,
+} = commentsSlice.actions
 export default commentsSlice.reducer
 
 export const selectCommentsForPost = (postId) => (state) =>
@@ -184,3 +249,5 @@ export const selectCommentsCountForPost = (postId) => (state) =>
   state.comments.countByPostId[postId] ?? 0
 export const selectCommentsCountStatusForPost = (postId) => (state) =>
   state.comments.countStatusByPostId[postId] || 'idle'
+export const selectLikesForComment = (commentId) => (state) =>
+  state.comments.likes.filter((like) => like.commentId === commentId)
