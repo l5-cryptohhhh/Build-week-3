@@ -1,4 +1,15 @@
-import { collection, addDoc, doc, getDoc, getDocs, query, where, orderBy, updateDoc } from 'firebase/firestore'
+import {
+  collection,
+  addDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  updateDoc,
+  writeBatch,
+} from 'firebase/firestore'
 import { db } from '../firebase'
 
 async function actorName(actorId) {
@@ -36,6 +47,25 @@ export async function markNotificationRead(id) {
   await updateDoc(doc(db, 'notifications', id), { read: true })
   const snapshot = await getDoc(doc(db, 'notifications', id))
   return { id: snapshot.id, ...snapshot.data() }
+}
+
+// Un batch invece di N updateDoc separate: stesso numero di scritture verso
+// Firestore, ma un'unica richiesta di rete e un'unica conferma invece di N
+// round-trip in parallelo. Ogni scrittura nel batch tocca comunque solo il
+// campo `read`, quindi resta valida per la regola di sicurezza che lo
+// impone (`affectedKeys().hasOnly(['read'])`).
+export async function markAllNotificationsRead(userId) {
+  const snapshot = await getDocs(
+    query(
+      collection(db, 'notifications'),
+      where('userId', '==', userId),
+      where('read', '==', false),
+    ),
+  )
+  if (snapshot.empty) return
+  const batch = writeBatch(db)
+  snapshot.docs.forEach((d) => batch.update(d.ref, { read: true }))
+  await batch.commit()
 }
 
 export { notifyUser, actorName }

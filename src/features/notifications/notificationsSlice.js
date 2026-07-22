@@ -23,6 +23,18 @@ export const markNotificationRead = createAsyncThunk(
   },
 )
 
+export const markAllNotificationsRead = createAsyncThunk(
+  'notifications/markAllNotificationsRead',
+  async (userId, { rejectWithValue }) => {
+    try {
+      await notificationsService.markAllNotificationsRead(userId)
+      return userId
+    } catch (err) {
+      return rejectWithValue(err.message)
+    }
+  },
+)
+
 const initialState = {
   items: [],
   status: 'idle',
@@ -55,6 +67,11 @@ const notificationsSlice = createSlice({
       .addCase(markNotificationRead.fulfilled, (state, action) => {
         const index = state.items.findIndex((item) => item.id === action.payload.id)
         if (index !== -1) state.items[index] = action.payload
+      })
+      .addCase(markAllNotificationsRead.fulfilled, (state) => {
+        state.items.forEach((item) => {
+          item.read = true
+        })
       })
   },
 })

@@ -7,9 +7,11 @@ import EmptyState from '../common/EmptyState'
 import { formatRelativeTime } from '../../utils/dateFormat'
 import {
   markNotificationRead,
+  markAllNotificationsRead,
   selectNotifications,
   selectUnreadNotificationsCount,
 } from '../../features/notifications/notificationsSlice'
+import { selectCurrentUser } from '../../features/auth/authSlice'
 
 const TYPE_ICONS = {
   message: 'bi-chat-dots',
@@ -21,10 +23,16 @@ const TYPE_ICONS = {
 export default function NotificationBell() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const currentUser = useSelector(selectCurrentUser)
   const notifications = useSelector(selectNotifications)
   const unreadCount = useSelector(selectUnreadNotificationsCount)
   const [isBumping, setIsBumping] = useState(false)
   const prevUnreadRef = useRef(unreadCount)
+
+  const handleMarkAllRead = (event) => {
+    event.stopPropagation()
+    dispatch(markAllNotificationsRead(currentUser.id))
+  }
 
   useEffect(() => {
     if (unreadCount > prevUnreadRef.current) {
@@ -67,7 +75,18 @@ export default function NotificationBell() {
         )}
       </Dropdown.Toggle>
       <Dropdown.Menu style={{ minWidth: 320, maxHeight: 400, overflowY: 'auto' }}>
-        <Dropdown.Header>Notifiche</Dropdown.Header>
+        <div className="d-flex align-items-center justify-content-between px-3 pt-1 pb-2">
+          <span className="dropdown-header p-0">Notifiche</span>
+          {unreadCount > 0 && (
+            <button
+              type="button"
+              className="btn btn-link btn-sm p-0 text-decoration-none"
+              onClick={handleMarkAllRead}
+            >
+              Segna tutte come lette
+            </button>
+          )}
+        </div>
         {notifications.length === 0 ? (
           <div className="px-3">
             <EmptyState icon="bi-bell-slash" title="Nessuna notifica" />
