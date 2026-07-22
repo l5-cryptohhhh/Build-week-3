@@ -193,6 +193,63 @@ nel README.
 
 ## Changelog
 
+- **2026-07-22** — Rollback `popperConfig={{ strategy: 'fixed' }}` su
+  `ShareMenu.jsx`: staccava visivamente il menu dal bottone (posizionato
+  contro il viewport invece che contro il trigger, "fluttuava" lontano
+  invece di restare ancorato). Il containing-block gia' risolto rimuovendo
+  l'animazione (voce precedente) toglie la causa originale del taglio ai
+  bordi; `strategy: 'fixed'` non serve piu' e introduceva un problema
+  peggiore del bug che doveva risolvere. `Dropdown.Menu` torna al
+  comportamento standard react-bootstrap, ancorato al bottone. Lint/build
+  puliti, non testato in browser.
+- **2026-07-22** — Il fill-mode 'none' non bastava (transform presente
+  comunque durante il playback, stesso problema al momento dell'apertura
+  del menu). Su richiesta esplicita, animazione `fade-in-up` rimossa del
+  tutto: `.empty-state-fade`/`.animate-fade-in` ora `animation: none`
+  (unico punto in `index.css`, classi lasciate no-op nei 9 componenti che
+  le usano invece di toccarli uno per uno). Card/elementi compaiono subito,
+  fermi, senza transform — elimina la classe di bug alla radice invece di
+  inseguirla. Non testato in browser, solo lint/build.
+- **2026-07-22** — Il fix precedente (`strategy: 'fixed'` su Popper) non
+  risolveva davvero il menu "Condividi" tagliato: la Card ha classe
+  `animate-fade-in`, la cui animazione (`fade-in-up`) usava
+  `animation-fill-mode: both`, lasciando `transform: translateY(0)`
+  applicato per sempre a fine animazione. Un `transform` diverso da `none`
+  (anche l'identita') rende l'elemento containing block per i discendenti
+  `position: fixed` (spec CSS Transforms) — quindi il menu restava comunque
+  vincolato alla Card invece che al viewport, stesso comportamento
+  "tagliato" di prima. Fix in `index.css`: rimosso `both` da
+  `.animate-fade-in`/`.empty-state-fade` (fill-mode torna al default
+  `none`); il keyframe finale (opacity:1, transform:none) coincide gia'
+  con lo stato base della card quindi nessun cambio visivo a fine
+  animazione, ma il transform smette di persistere e Popper `fixed` ora
+  funziona davvero. Non testato in browser (nessun tool di automazione
+  disponibile in sessione), solo lint/build.
+- **2026-07-22** — Fix menu "Condividi" tagliato ai bordi del viewport
+  (`ShareMenu.jsx`): `Dropdown.Menu` di react-bootstrap usa Popper con
+  `strategy: 'absolute'` di default, posizionato rispetto all'ancestor
+  posizionato piu' vicino nel DOM invece che al viewport — con un post
+  vicino al fondo pagina il flip su/giu' (gia' attivo di default,
+  `flip: true`) sceglieva comunque il lato con meno spazio reale e il
+  menu restava tagliato. Aggiunto `popperConfig={{ strategy: 'fixed' }}`:
+  ora il flip valuta lo spazio disponibile rispetto al viewport, quindi il
+  menu resta sempre interamente visibile (sopra o sotto il bottone a
+  seconda dello spazio). Stesso rischio esiste sugli altri `Dropdown.Menu`
+  del progetto (menu post a tre puntini, notifiche) ma non toccati:
+  nessun report su quelli, fix applicato solo dove segnalato. Non testato
+  in browser (nessun tool di automazione disponibile in sessione), solo
+  lint/build.
+- **2026-07-22** — Fix posizione toast (`ToastHost.jsx`): mancava
+  `containerPosition="fixed"` su `ToastContainer` di react-bootstrap, quindi
+  restava `position: static` (le classi utility `bottom-0`/`end-0` da sole
+  non spostano nulla) e il toast si muoveva con lo scroll invece di restare
+  fermo — bug unico dietro sia il caso "toast verde di conferma azione" sia
+  "toast dopo Condividi" (stesso `ToastHost`, nessuna logica per-bottone).
+  Ora fissato in basso a sinistra con nuova classe `.app-toast-container`
+  (`src/index.css`), allineata al bordo della colonna sidebar (container
+  centrato 1128px, non al bordo vivo della finestra) cosi' compare sotto la
+  card "Elementi salvati" del feed. Non testato in browser (nessun tool di
+  automazione disponibile in sessione), solo lint/build.
 - **2026-07-22** — Realtime esteso a post/commenti/like/follow (prima solo
   messaggi/notifiche/presenza). In `server/realtime.js`, `router.render`
   ora emette anche `post:new`/`post:updated`/`post:deleted`,
