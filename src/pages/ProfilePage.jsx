@@ -6,6 +6,7 @@ import Col from 'react-bootstrap/Col'
 import ProfileCard from '../components/profile/ProfileCard'
 import ProfileEditForm from '../components/profile/ProfileEditForm'
 import FollowListModal from '../components/profile/FollowListModal'
+import ExperienceSection from '../components/profile/ExperienceSection'
 import PostCard from '../components/posts/PostCard'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
@@ -132,6 +133,8 @@ export default function ProfilePage() {
           title={followListMode === 'followers' ? 'Follower' : 'Seguiti'}
           userIds={followListMode === 'followers' ? followerIds : followingIds}
         />
+
+        <ExperienceSection user={profileUser} isOwnProfile={isOwnProfile} />
 
         <h2 className="h5 mb-3">Post di {profileUser.fullName}</h2>
         {postsStatus === 'loading' && posts.length === 0 && (

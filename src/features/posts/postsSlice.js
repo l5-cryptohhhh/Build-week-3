@@ -41,6 +41,19 @@ export const fetchPostsByUser = createAsyncThunk(
   },
 )
 
+export const fetchSavedPosts = createAsyncThunk(
+  'posts/fetchSavedPosts',
+  async (postIds, { rejectWithValue }) => {
+    try {
+      const posts = await postsService.fetchPostsByIds(postIds)
+      const likes = await postsService.fetchLikesForPosts(posts.map((post) => post.id))
+      return { posts, likes }
+    } catch (err) {
+      return rejectWithValue(err.message)
+    }
+  },
+)
+
 export const createPost = createAsyncThunk(
   'posts/createPost',
   async (postData, { rejectWithValue }) => {
@@ -104,12 +117,48 @@ const initialState = {
   byUserId: {},
   statusByUserId: {},
   followingFeed: { items: [], likes: [], page: 1, limit: 5, totalCount: 0, status: 'idle' },
+  saved: { items: [], status: 'idle' },
 }
 
+// Un post/like puo' arrivare sia dal socket (broadcast a tutti, incluso il
+// mittente) sia dal thunk locale che lo ha creato: il dedup by id evita il
+// doppione quando i due percorsi si incrociano.
 const postsSlice = createSlice({
   name: 'posts',
   initialState,
-  reducers: {},
+  reducers: {
+    postReceived(state, action) {
+      if (state.items.some((post) => post.id === action.payload.id)) return
+      state.items.unshift(action.payload)
+      state.totalCount += 1
+    },
+    postUpdatedFromSocket(state, action) {
+      const post = action.payload
+      const index = state.items.findIndex((item) => item.id === post.id)
+      if (index !== -1) state.items[index] = post
+      const userIndex = state.byUserId[post.userId]?.findIndex((item) => item.id === post.id)
+      if (userIndex !== undefined && userIndex !== -1) state.byUserId[post.userId][userIndex] = post
+      const followingIndex = state.followingFeed.items.findIndex((item) => item.id === post.id)
+      if (followingIndex !== -1) state.followingFeed.items[followingIndex] = post
+    },
+    postDeletedFromSocket(state, action) {
+      const { id } = action.payload
+      if (!state.items.some((post) => post.id === id)) return
+      state.items = state.items.filter((post) => post.id !== id)
+      state.totalCount = Math.max(0, state.totalCount - 1)
+      Object.keys(state.byUserId).forEach((userId) => {
+        state.byUserId[userId] = state.byUserId[userId].filter((post) => post.id !== id)
+      })
+      state.followingFeed.items = state.followingFeed.items.filter((post) => post.id !== id)
+    },
+    likeReceived(state, action) {
+      if (state.likes.some((like) => like.id === action.payload.id)) return
+      state.likes.push(action.payload)
+    },
+    likeRemovedFromSocket(state, action) {
+      state.likes = state.likes.filter((like) => like.id !== action.payload.id)
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchPosts.pending, (state) => {
@@ -208,6 +257,20 @@ const postsSlice = createSlice({
           (post) => post.id !== action.payload,
         )
       })
+      .addCase(fetchSavedPosts.pending, (state) => {
+        state.saved.status = 'loading'
+      })
+      .addCase(fetchSavedPosts.fulfilled, (state, action) => {
+        state.saved.status = 'succeeded'
+        state.saved.items = action.payload.posts
+        const existingLikeIds = new Set(state.likes.map((like) => like.id))
+        action.payload.likes.forEach((like) => {
+          if (!existingLikeIds.has(like.id)) state.likes.push(like)
+        })
+      })
+      .addCase(fetchSavedPosts.rejected, (state) => {
+        state.saved.status = 'failed'
+      })
       .addCase(toggleLike.fulfilled, (state, action) => {
         if (action.payload.liked) {
           state.likes.push(action.payload.like)
@@ -218,6 +281,13 @@ const postsSlice = createSlice({
   },
 })
 
+export const {
+  postReceived,
+  postUpdatedFromSocket,
+  postDeletedFromSocket,
+  likeReceived,
+  likeRemovedFromSocket,
+} = postsSlice.actions
 export default postsSlice.reducer
 
 export const selectAllPosts = (state) => state.posts.items
@@ -232,3 +302,5 @@ export const selectPostsByUser = (userId) => (state) => state.posts.byUserId[use
 export const selectPostsByUserStatus = (userId) => (state) =>
   state.posts.statusByUserId[userId] || 'idle'
 export const selectFollowingFeed = (state) => state.posts.followingFeed
+export const selectSavedPosts = (state) => state.posts.saved.items
+export const selectSavedPostsStatus = (state) => state.posts.saved.status

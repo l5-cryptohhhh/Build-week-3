@@ -84,14 +84,16 @@ export function authenticateSocket(io) {
 // ha gia' eseguito la scrittura effettiva su db.json, senza duplicare la
 // logica di CRUD/validazione/autorizzazione gia' gestita da json-server e
 // json-server-auth.
+// DELETE risponde con {} di default: per le collection dove serve un campo
+// della risorsa eliminata dentro router.render (es. postId di un commento),
+// la si cattura qui prima che il router la rimuova da db.json.
+const DELETE_CAPTURE_COLLECTIONS = ['messages', 'comments', 'likes', 'follows']
+
 export function attachRealtime(server, router, io) {
-  // DELETE /messages/:id risponde con {} di default: catturiamo la
-  // risorsa prima che il router la elimini, per sapere conversationId
-  // dentro router.render.
   server.use((req, res, next) => {
-    if (req.method === 'DELETE' && /^\/messages\/\d+$/.test(req.path)) {
-      const id = Number(req.path.split('/')[2])
-      res.locals.deletedResource = server.db.get('messages').find({ id }).value()
+    const match = req.method === 'DELETE' && req.path.match(/^\/(\w+)\/(\d+)$/)
+    if (match && DELETE_CAPTURE_COLLECTIONS.includes(match[1])) {
+      res.locals.deletedResource = server.db.get(match[1]).find({ id: Number(match[2]) }).value()
     }
     next()
   })
@@ -157,6 +159,7 @@ export function attachRealtime(server, router, io) {
     }
 
     if (method === 'POST' && path === '/comments' && res.statusCode === 201) {
+      io.emit('comment:new', data)
       const post = server.db.get('posts').find({ id: data.postId }).value()
       if (post) {
         createNotification(server, io, {
@@ -170,7 +173,19 @@ export function attachRealtime(server, router, io) {
       return defaultRender(req, res)
     }
 
+    if (method === 'PATCH' && /^\/comments\/\d+$/.test(path) && res.statusCode === 200) {
+      io.emit('comment:updated', data)
+      return defaultRender(req, res)
+    }
+
+    if (method === 'DELETE' && /^\/comments\/\d+$/.test(path) && res.statusCode === 200) {
+      const deleted = res.locals.deletedResource
+      if (deleted) io.emit('comment:deleted', { id: deleted.id, postId: deleted.postId })
+      return defaultRender(req, res)
+    }
+
     if (method === 'POST' && path === '/follows' && res.statusCode === 201) {
+      io.emit('follow:new', data)
       createNotification(server, io, {
         userId: data.followingId,
         actorId: data.userId,
@@ -180,7 +195,14 @@ export function attachRealtime(server, router, io) {
       return defaultRender(req, res)
     }
 
+    if (method === 'DELETE' && /^\/follows\/\d+$/.test(path) && res.statusCode === 200) {
+      const deleted = res.locals.deletedResource
+      if (deleted) io.emit('follow:deleted', { id: deleted.id, userId: deleted.userId, followingId: deleted.followingId })
+      return defaultRender(req, res)
+    }
+
     if (method === 'POST' && path === '/likes' && res.statusCode === 201) {
+      io.emit('like:new', data)
       const post = server.db.get('posts').find({ id: data.postId }).value()
       if (post) {
         createNotification(server, io, {
@@ -191,6 +213,27 @@ export function attachRealtime(server, router, io) {
           postId: post.id,
         })
       }
+      return defaultRender(req, res)
+    }
+
+    if (method === 'DELETE' && /^\/likes\/\d+$/.test(path) && res.statusCode === 200) {
+      const deleted = res.locals.deletedResource
+      if (deleted) io.emit('like:deleted', { id: deleted.id, postId: deleted.postId, userId: deleted.userId })
+      return defaultRender(req, res)
+    }
+
+    if (method === 'POST' && path === '/posts' && res.statusCode === 201) {
+      io.emit('post:new', data)
+      return defaultRender(req, res)
+    }
+
+    if (method === 'PATCH' && /^\/posts\/\d+$/.test(path) && res.statusCode === 200) {
+      io.emit('post:updated', data)
+      return defaultRender(req, res)
+    }
+
+    if (method === 'DELETE' && /^\/posts\/\d+$/.test(path) && res.statusCode === 200) {
+      io.emit('post:deleted', { id: Number(path.split('/')[2]) })
       return defaultRender(req, res)
     }
 

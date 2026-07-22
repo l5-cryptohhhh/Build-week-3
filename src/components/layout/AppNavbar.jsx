@@ -4,10 +4,12 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import Container from 'react-bootstrap/Container'
 import Navbar from 'react-bootstrap/Navbar'
 import Nav from 'react-bootstrap/Nav'
+import Form from 'react-bootstrap/Form'
 import Button from 'react-bootstrap/Button'
 import Badge from 'react-bootstrap/Badge'
 import { logout, selectCurrentUser } from '../../features/auth/authSlice'
 import { selectTotalUnreadMessages } from '../../features/messages/messagesSlice'
+import { setSearchQuery } from '../../features/search/searchSlice'
 import Avatar from '../common/Avatar'
 import NotificationBell from '../notifications/NotificationBell'
 import useTheme from '../../hooks/useTheme'
@@ -18,11 +20,19 @@ export default function AppNavbar() {
   const user = useSelector(selectCurrentUser)
   const unreadMessages = useSelector(selectTotalUnreadMessages)
   const [expanded, setExpanded] = useState(false)
+  const [searchInput, setSearchInput] = useState('')
   const [theme, toggleTheme] = useTheme()
 
   const handleLogout = () => {
     dispatch(logout())
     navigate('/login', { replace: true })
+  }
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault()
+    dispatch(setSearchQuery(searchInput))
+    navigate('/search')
+    setExpanded(false)
   }
 
   if (!user) return null
@@ -41,9 +51,25 @@ export default function AppNavbar() {
           <span className="brand-in">in</span>
           <span className="brand-clone">Clone</span>
         </Navbar.Brand>
-        <Navbar.Toggle aria-controls="main-navbar" />
+
+        <Form onSubmit={handleSearchSubmit} className="d-none d-sm-block mx-3" style={{ width: 280 }}>
+          <div className="input-group rounded-pill overflow-hidden">
+            <span className="input-group-text bg-body-tertiary border-0">
+              <i className="bi bi-search text-secondary"></i>
+            </span>
+            <Form.Control
+              type="search"
+              placeholder="Cerca..."
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              className="border-0 bg-body-tertiary"
+            />
+          </div>
+        </Form>
+
+        <Navbar.Toggle aria-controls="main-navbar" className="ms-auto" />
         <Navbar.Collapse id="main-navbar">
-          <Nav className="me-auto">
+          <Nav className="ms-auto align-items-md-center gap-md-3">
             <Nav.Link as={NavLink} to="/" end onClick={() => setExpanded(false)}>
               Home
             </Nav.Link>
@@ -63,11 +89,6 @@ export default function AppNavbar() {
                 </Badge>
               )}
             </Nav.Link>
-            <Nav.Link as={NavLink} to="/search" onClick={() => setExpanded(false)}>
-              <i className="bi bi-search me-1"></i>Cerca
-            </Nav.Link>
-          </Nav>
-          <Nav className="align-items-md-center gap-3">
             <button
               type="button"
               className="btn btn-sm btn-link text-secondary p-0"

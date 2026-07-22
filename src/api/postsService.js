@@ -41,6 +41,14 @@ export async function deletePost(id) {
   return id
 }
 
+export async function fetchPostsByIds(ids) {
+  if (!ids.length) return []
+  const params = new URLSearchParams()
+  ids.forEach((id) => params.append('id', id))
+  const { data } = await httpClient.get(`/posts?${params.toString()}`)
+  return data
+}
+
 export async function fetchLikesForPosts(postIds) {
   if (!postIds.length) return []
   const params = new URLSearchParams()

@@ -11,6 +11,7 @@ import FollowingFeedList from '../components/posts/FollowingFeedList'
 import Avatar from '../components/common/Avatar'
 import NewsWidget from '../components/news/NewsWidget'
 import SidebarFooter from '../components/layout/SidebarFooter'
+import ConnectionsCard from '../components/profile/ConnectionsCard'
 import { createPost } from '../features/posts/postsSlice'
 import { fetchAllUsers } from '../features/users/usersSlice'
 import { fetchFollowData } from '../features/follow/followSlice'
@@ -56,6 +57,20 @@ export default function FeedPage() {
               {currentUser.jobTitle && (
                 <p className="text-secondary small mb-0">{currentUser.jobTitle}</p>
               )}
+            </Card.Body>
+          </Card>
+
+          <ConnectionsCard userId={currentUser.id} />
+
+          <Card className="shadow-sm mt-3">
+            <Card.Body className="p-2">
+              <Link
+                to="/saved"
+                className="d-flex align-items-center gap-2 text-decoration-none text-dark p-1"
+              >
+                <i className="bi bi-bookmark-fill text-secondary"></i>
+                <span>Elementi salvati</span>
+              </Link>
             </Card.Body>
           </Card>
         </div>
