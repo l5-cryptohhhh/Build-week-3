@@ -209,9 +209,171 @@ duplicare utenti gia' esistenti (verifica per email prima di creare).
 - Presenza via Realtime Database (`onDisconnect`) per una rilevazione
   offline istantanea invece dell'heartbeat.
 - Ricerca full-text reale (Algolia/Typesense) al posto del prefix-match.
+- Tutti e 4 i rompicapo (Zip/Patches/Mini Sudoku/Tango) sono giocabili, vedi
+  changelog 2026-07-23. Possibili miglioramenti futuri se richiesti: livelli
+  di difficolta', verifica di unicita' della soluzione, persistenza del
+  progresso/statistiche (nessuno di questi implementato, nessuna richiesta
+  esplicita finora).
 
 ## Changelog
 
+- **2026-07-23** — Patches giocabile, ultimo dei 4 rompicapo: nessun
+  placeholder "Presto disponibile" residuo (vedi voci precedenti per
+  Zip/Tango/Mini Sudoku e scope generale). Repo indicato dall'utente,
+  `github.com/kallyas/patches`: gioco reale (Expo/React Native, non un
+  solver), ma stesso problema degli altri tre — **nessun `LICENSE`**
+  (`license` null via API GitHub), riscritto da zero dalle regole del gioco.
+  Patches e' concettualmente uno Shikaku (partizione di una griglia in
+  rettangoli, un indizio numerico per rettangolo = la sua area) con
+  l'aggiunta di un vincolo di forma per indizio (quadrato/largo/alto).
+  - `src/utils/patches.js`: genera una partizione della griglia 6x6 in ~8
+    rettangoli con guillotine-cut ricorsivo casuale (parte da un'unica
+    regione, la spacca a caso in orizzontale o verticale finche' non
+    raggiunge il conteggio target; se le regioni diventano tutte 1x1 prima
+    del target si ferma con meno tessere, nessuna soluzione forzata). Per
+    ogni rettangolo sceglie una cella indizio casuale al suo interno con
+    valore=area e forma derivata direttamente dalle sue dimensioni reali
+    (`square` se w=h, `wide` se w>h, `tall` se h>w) — quindi l'indizio e'
+    sempre dimensionalmente coerente per costruzione, nessuna categoria
+    "any" (semplificazione dichiarata, non richiesta). Come per gli altri 3
+    giochi, il generatore restituisce solo la griglia di indizi, non la
+    partizione soluzione: la vittoria si valuta sulla struttura disegnata
+    dal giocatore (`isPieceValid`/copertura totale), non sul confronto con
+    la soluzione originale — nessuna verifica di unicita'.
+  - `src/components/games/Patches.jsx`: griglia 6x6 di celle cliccabili.
+    Click su due celle qualsiasi definisce il rettangolo che le contiene
+    come rettangolo minimo che le racchiude (angoli opposti); rifiutato se
+    si sovrappone a un rettangolo gia' piazzato. Click su una cella dentro
+    un rettangolo esistente lo rimuove (stesso pattern "click per
+    annullare" gia' usato in Zip/Tango). Ogni rettangolo piazzato e'
+    colorato (palette a 8 colori ciclici) e mostra bordo rosso se non
+    valido (indizio mancante/doppio, area o forma sbagliate — via
+    `isPieceValid`); il numero di ogni indizio ha sotto un piccolo
+    rettangolo disegnato via CSS che ne suggerisce la forma attesa.
+    Vittoria quando l'area totale piazzata copre le 36 celle e tutti i
+    rettangoli sono validi. **Semplificazione dichiarata**: selezione a due
+    click invece di drag-to-draw come nell'originale (stessa meccanica di
+    Zip), nessun requisito esplicito sul drag.
+  - Verificato con script Node ad-hoc (200 puzzle generati: somma dei
+    valori indizio sempre = 36 celle, conteggio indizi = numero tessere,
+    ogni coppia valore/forma dimensionalmente fattibile entro una griglia
+    6x6; `isPieceValid` testato su rettangolo corretto, area sbagliata,
+    forma sbagliata, nessun indizio, due indizi). `npm run lint`/
+    `npm run build` puliti. **Non verificato in browser reale** (nessun
+    tool di automazione disponibile in questa sessione).
+- **2026-07-23** — Zip giocabile (vedi voci precedenti per Mini Sudoku/Tango
+  e scope generale). L'utente ha indicato
+  `github.com/sathvikc/linkedin-zip-puzzle`: non e' un solver (a differenza
+  del primo repo linkato), e' un gioco Zip realmente giocabile — ma stesso
+  problema di `ChakshuGautam/tango`: **nessun `LICENSE`** (`license` null via
+  API GitHub), quindi non riusabile senza permesso. Riscritto da zero dalle
+  sole regole del gioco (nessun codice copiato).
+  - `src/utils/zip.js`: genera un percorso hamiltoniano (tocca ogni cella
+    della griglia 6x6 una sola volta) con backtracking randomizzato +
+    euristica di Warnsdorff (prova prima i vicini con meno vie d'uscita,
+    riduce i vicoli ciechi — su 36 celle risolve in pochi millisecondi,
+    verificato). Lungo quel percorso vengono numerate 6 celle equidistanti
+    (1 sempre alla prima cella, 6 all'ultima). Anche qui nessuna verifica di
+    unicita' della soluzione: la griglia generata garantisce *un* percorso
+    valido esista, l'utente puo' risolverla con un percorso diverso dal
+    proprio purche' rispetti le regole.
+  - `src/components/games/Zip.jsx`: stessa griglia CSS 11x11 di
+    `Tango.jsx` (celle + connettori nelle posizioni intermedie), ma qui i
+    connettori diventano segmenti di linea blu tra le celle gia' collegate
+    nel percorso invece di simboli di vincolo. Click su una cella adiacente
+    all'ultima del percorso la aggiunge (rifiutato se la cella e' numerata
+    con un numero diverso dal prossimo atteso); click su una cella gia' nel
+    percorso tronca il percorso fino a li' (permette di tornare indietro
+    senza un bottone "annulla" dedicato). Vittoria quando il percorso copre
+    tutte le 36 celle (essendo l'ordine dei numeri gia' garantito passo per
+    passo, coprire tutta la griglia implica automaticamente aver toccato
+    tutti i checkpoint in ordine). **Semplificazione dichiarata**: si
+    disegna il percorso cliccando cella per cella, non trascinando il mouse
+    come nel gioco originale — stessa meccanica di validazione, minor
+    complessita' di gestione eventi mouse, nessun requisito esplicito sul
+    drag.
+  - Verificato con script Node ad-hoc (100 puzzle generati: sempre 36
+    celle, sempre esattamente i numeri 1-6 una volta ciascuno; check
+    `isAdjacent` su coppie adiacenti/diagonali/identiche) — generazione
+    completa in ~0.1s per 100 puzzle, nessun problema di performance.
+    `npm run lint`/`npm run build` puliti. **Non verificato in browser
+    reale** (nessun tool di automazione disponibile in questa sessione).
+- **2026-07-23** — Tango giocabile (vedi voce precedente per Mini Sudoku e
+  scope generale). L'utente ha indicato `github.com/ChakshuGautam/tango`
+  come possibile sorgente: e' un gioco Tango realmente giocabile (non un
+  solver come il repo precedente), ma **nessun file `LICENSE`** nel repo
+  (`license` null via API GitHub) — codice sotto copyright di default,
+  non riusabile senza permesso esplicito dell'autore. Riscritto da zero
+  usando solo la conoscenza delle regole del gioco (nessun codice copiato).
+  - `src/utils/tango.js`: griglia 6x6 sole/luna generata con lo stesso
+    schema di backtracking randomizzato di `miniSudoku.js` (righe/colonne
+    con esattamente 3 soli e 3 lune, mai 3 simboli uguali consecutivi).
+    Dalla soluzione vengono scelti 8 vincoli "=/×" casuali tra celle
+    adiacenti e 4 celle date fisse; il resto parte vuoto. Stesso principio
+    di Mini Sudoku per la vittoria: `isSolved` verifica bilanciamento +
+    no-3-di-fila + vincoli edge rispettati sulla griglia corrente, non un
+    confronto esatto con la soluzione generata (nessun solver di unicita',
+    non richiesto).
+  - `src/components/games/Tango.jsx`: board resa come griglia CSS 11x11
+    (celle alle posizioni pari, marcatori "=/×" nelle posizioni dispari tra
+    due celle adiacenti, intersezioni vuote) — click su una cella libera
+    alterna vuoto/sole/luna, celle date bloccate, celle in violazione
+    evidenziate. Aggiunto a `GamePage.jsx` (`puzzle.slug === 'tango'`) e
+    marcato `playable: true` in `data/puzzles.js`; resta solo Zip/Patches
+    come "Presto disponibile".
+  - Verificato con script Node ad-hoc (200 puzzle generati: sempre 4 celle
+    date senza conflitti tra loro, vincoli edge sempre `=`/`×`; check
+    `isSolved`/`hasConflict` su una griglia valida, una con 3-di-fila e una
+    con vincolo edge violato) — stesso motivo di Mini Sudoku per non
+    aggiungere un framework di test solo per questo. `npm run lint`/
+    `npm run build` puliti. **Non verificato in browser reale** (nessun
+    tool di automazione disponibile in questa sessione).
+- **2026-07-23** — Card "I rompicapo di oggi" nella sidebar del feed (sotto
+  `NewsWidget`), su richiesta esplicita con screenshot di riferimento (stile
+  LinkedIn: icona colorata + nome/numero + sottotitolo + freccia, per Zip/
+  Patches/Mini Sudoku/Tango). L'utente aveva indicato
+  `github.com/brohitbrose/linkedin-games` come possibile sorgente per i
+  giochi: verificato (README + struttura repo) che e' **solo un solver**
+  (estensione browser Chrome/Firefox, MIT, bottone "Solve" che legge il DOM
+  di una partita LinkedIn gia' aperta) — nessuna board/UI di gioco riusabile,
+  quindi i 4 giochi vanno scritti da zero. Su scelta esplicita dell'utente tra
+  le opzioni proposte, implementato subito **Mini Sudoku** completo (griglia
+  6x6, box 2x3) come primo gioco giocabile; Zip/Patches/Tango restano
+  placeholder "Presto disponibile" in attesa di essere implementati uno alla
+  volta (vedi "Prossimi passi possibili").
+  - Nuovo `src/data/puzzles.js`: config statica dei 4 rompicapo (slug, nome,
+    numero, sottotitolo, icona Bootstrap Icons, colore) — numero puzzle
+    puramente cosmetico/statico, nessun sistema di numerazione giornaliera
+    reale (non richiesto).
+  - Nuovo `src/components/games/PuzzlesWidget.jsx` (card sidebar, monta in
+    `FeedPage.jsx` tra `NewsWidget` e `AdWidget`) e nuova rotta
+    `/games/:slug` (`src/pages/GamePage.jsx`, dentro `MainLayout`/
+    `ProtectedRoute` come le altre pagine autenticate) che legge il puzzle da
+    `data/puzzles.js` e mostra `MiniSudoku` se `playable`, altrimenti il
+    placeholder.
+  - **Mini Sudoku**: `src/utils/miniSudoku.js` genera una griglia 6x6 valida
+    con backtracking randomizzato (Fisher-Yates sull'ordine dei candidati
+    1-6 ad ogni cella), poi rimuove 16 caselle su 36 (20 date) per creare il
+    puzzle. Nessun controllo di unicita' della soluzione (ponytail: non
+    richiesto per un mini-gioco casuale) — la condizione di vittoria in
+    `isSolved`/`hasConflict` verifica che la griglia sia piena e priva di
+    duplicati riga/colonna/box, non che coincida con la soluzione originale,
+    quindi qualunque completamento valido conta come vittoria.
+    `src/components/games/MiniSudoku.jsx`: board come griglia di `<input>`
+    controllati (celle date bloccate con `readOnly` + stile piu' marcato),
+    bordi piu' spessi tra i box 2x3, celle in conflitto evidenziate in rosso,
+    bottone "Nuova partita" rigenera il puzzle. Nessuna nuova dipendenza
+    (icone da `bootstrap-icons` gia' installato).
+  - Verificato con uno script Node ad-hoc (200 puzzle generati: sempre 20
+    caselle date, zero conflitti tra le celle date; check di `isSolved`/
+    `hasConflict` su una griglia valida e una alterata) dato che il progetto
+    non ha un framework di test configurato (solo `oxlint`, nessun
+    jest/vitest) — aggiungerne uno per questo solo controllo sarebbe stato
+    sproporzionato. `npm run lint` e `npm run build` puliti (solo i 3
+    warning `exhaustive-deps` preesistenti, non toccati da questa modifica).
+    **Non verificato in browser reale** in questa sessione (nessun tool di
+    automazione disponibile) — da controllare visivamente al primo utilizzo
+    che la card in sidebar e la board di Mini Sudoku rendano come atteso.
 - **2026-07-23** — Nuova sezione "Offerte di lavoro" (`/jobs`), su richiesta
   esplicita. Prima scelta discussa e scartata: SerpApi (`google_jobs`) non
   espone header CORS e richiede quindi un proxy backend per non esporre la
