@@ -217,6 +217,45 @@ duplicare utenti gia' esistenti (verifica per email prima di creare).
 
 ## Changelog
 
+- **2026-07-23** — Fix bug reale nel salvataggio offerte (voce precedente):
+  cliccando il segnalibro su un'offerta si segnavano come salvate *tutte*
+  le card visibili. Causa: l'API `strive-benchmark` restituisce l'id del
+  job come `_id`, non `id` (verificato con una chiamata diretta) —
+  `JobCard` confrontava `job.id` (sempre `undefined` per ogni job, campo
+  inesistente), quindi `undefined === undefined` risultava vero per
+  qualunque coppia di job non ancora salvati non appena il primo veniva
+  salvato. Corretto a `_id` (gia' usato correttamente come `key` in
+  `JobsPage.jsx`, solo `JobCard.jsx`/`SavedPostsPage.jsx` avevano il campo
+  sbagliato). Invertito anche l'ordine delle due sezioni in "Elementi
+  salvati" su richiesta esplicita: "Offerte di lavoro salvate" ora in cima,
+  "Post salvati" sotto. Lint e build puliti.
+- **2026-07-23** — Offerte di lavoro salvabili nei "Elementi salvati", su
+  richiesta esplicita, stessa card (`JobCard`) usata in `/jobs`. A
+  differenza dei post (dove si salva solo l'id e si rifetcha da Firestore),
+  qui non esiste un endpoint "get job by id" sull'API pubblica
+  (`jobsService.searchJobs` accetta solo `?search=`) — si salva quindi
+  l'intero oggetto job cosi' com'e' tornato dall'API, non solo l'id, come
+  nuovo campo `savedJobs` (array) sul documento utente, stesso pattern gia'
+  usato per `experiences` (thunk `updateProfile` esistente, permesso `640`
+  su `users` gia' sufficiente, nessuna nuova collection/regola). Bottone
+  segnalibro aggiunto a `JobCard.jsx` (stesso stile/icona `bi-bookmark`/
+  `bi-bookmark-fill` di `PostCard`), visibile solo se loggato.
+  `SavedPostsPage.jsx` ora mostra i post salvati e poi, se presenti, una
+  sezione "Offerte di lavoro salvate" che renderizza `savedJobs` con
+  `JobCard` invariato — nessun fetch aggiuntivo necessario (i dati sono
+  gia' completi nel documento utente). Lint e build puliti.
+  - **Richiesta non implementabile cosi' com'e'**: click su una notizia in
+    home che porti all'articolo tramite il link dell'API. Verificato con
+    una chiamata diretta ad apitube (stessa chiave in `.env.local`): non
+    solo `href` ma anche `source.domain`, `links[].url` e ogni altro campo
+    con un URL sono tutti troncati con lo stesso suffisso letterale
+    `[Upgrade subscription plan]` gia' noto (vedi limite in cima a questo
+    file) — nessun campo della risposta contiene un URL utilizzabile con la
+    chiave trial attuale (`story.uri` esiste ma punta a un endpoint JSON di
+    apitube, non a una pagina leggibile, e richiederebbe comunque la api
+    key). Nessuna modifica di codice fatta per questo punto: servirebbe
+    un piano apitube a pagamento (stessa causa radice del motivo per cui
+    `NewsWidget` oggi mostra solo titolo e data, non link/fonte).
 - **2026-07-23** — Patches giocabile, ultimo dei 4 rompicapo: nessun
   placeholder "Presto disponibile" residuo (vedi voci precedenti per
   Zip/Tango/Mini Sudoku e scope generale). Repo indicato dall'utente,
