@@ -11,7 +11,9 @@ export default function MainLayout() {
     <>
       <AppNavbar />
       <Container className="pt-5 mt-4 pb-5" style={{ maxWidth: 1128 }}>
-        <Outlet />
+        <div key={location.pathname} className="page-transition">
+          <Outlet />
+        </div>
       </Container>
       {!isMessagesPage && <MessengerWidget />}
     </>

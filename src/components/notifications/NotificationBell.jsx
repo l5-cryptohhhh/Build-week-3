@@ -20,7 +20,7 @@ const TYPE_ICONS = {
   follow: 'bi-person-plus',
 }
 
-export default function NotificationBell() {
+export default function NotificationBell({ id = 'notification-bell' }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const currentUser = useSelector(selectCurrentUser)
@@ -60,14 +60,14 @@ export default function NotificationBell() {
       <Dropdown.Toggle
         variant="link"
         className="text-secondary p-0 no-caret position-relative"
-        id="notification-bell"
+        id={id}
       >
         <i className={`bi bi-bell fs-5 ${isBumping ? 'bell-bump' : ''}`}></i>
         {unreadCount > 0 && (
           <Badge
             bg="danger"
             pill
-            className="position-absolute top-0 start-100 translate-middle"
+            className={`position-absolute top-0 start-100 translate-middle ${isBumping ? 'badge-pop' : ''}`}
             style={{ fontSize: '0.6rem' }}
           >
             {unreadCount}

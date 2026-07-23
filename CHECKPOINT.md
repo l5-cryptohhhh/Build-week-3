@@ -1046,3 +1046,36 @@ duplicare utenti gia' esistenti (verifica per email prima di creare).
   like, messaggistica privata con CRUD completo, stati loading/errore/
   vuoto, autorizzazioni client-side. Verificato con test end-to-end in
   browser headless. Lint e build puliti. Creato questo file di checkpoint.
+- **2026-07-23** — Giro di rifiniture UX mobile su `AppNavbar.jsx` +
+  animazioni generali. Navbar mobile: menu hamburger con contenuti centrati
+  (`text-center text-lg-start` sul `Nav`), blocco avatar+nome profilo
+  spostato fuori dal `Nav`, centrato in cima al menu (avatar a sinistra);
+  barra di ricerca e bottone tema/`NotificationBell` spostati fuori dal
+  hamburger, sempre visibili nella barra principale (prima la ricerca
+  spariva del tutto sotto i 576px, `d-none d-sm-block` senza alternativa).
+  `FeedPage.jsx`: link "Elementi salvati" aggiunto accanto a "Chi segui"
+  nella Nav pills (visibile solo `d-lg-none`, dato che in precedenza era
+  solo nella sidebar sinistra nascosta sotto `lg`). `ConversationView.jsx`:
+  freccia "indietro" verso `/messages` visibile solo mobile (`d-md-none`),
+  prima non c'era modo di tornare alla lista conversazioni senza il tasto
+  indietro del browser. `MessengerWidget.jsx`: il pannello di conversazione
+  apriva un secondo box fluttuante affiancato (`right: 320`) che su mobile
+  usciva dal bordo sinistro dello schermo (tagliato) — ora un solo pannello,
+  la conversazione sostituisce la lista nello stesso box, larghezza
+  `min(300px, calc(100vw - 1.5rem))`.
+  Animazioni generali aggiunte in `index.css` (solo opacity/scale su
+  elementi foglia, niente transform su contenitori con dropdown Popper
+  dentro — vedi nota sotto): `.page-transition` (fade pagina su cambio
+  rotta, key su `location.pathname` in `MainLayout.jsx`), transizione
+  slide+fade su `.toast` (react-bootstrap Toast), `.badge-pop` (bump sul
+  badge non letti di `NotificationBell`, preserva `translate-middle`),
+  bump `.like-pop` riusato sul badge "Messaggi" in `AppNavbar` quando sale
+  il conteggio, burst "+1" fluttuante (`.reaction-burst`) su
+  `ReactionButton.jsx` al click su una reazione. **Nota importante**:
+  `.animate-fade-in`/`.empty-state-fade` restano volutamente `animation:
+  none` (vedi voci 2026-07-22 sul bug Popper/ShareMenu) — non toccati, e
+  nessuna nuova animazione con `transform` persistente e' stata aggiunta ai
+  componenti che li usano (PostCard, CommentItem, JobCard,
+  ConversationList, MessageBubble, NotificationBell dropdown item,
+  UserResultItem, NotFoundPage). Lint e build puliti, non testato in
+  browser (nessun tool di automazione disponibile in sessione).

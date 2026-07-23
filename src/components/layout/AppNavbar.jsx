@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import Container from 'react-bootstrap/Container'
@@ -22,6 +22,18 @@ export default function AppNavbar() {
   const [expanded, setExpanded] = useState(false)
   const [searchInput, setSearchInput] = useState('')
   const [theme, toggleTheme] = useTheme()
+  const [isMessagesBumping, setIsMessagesBumping] = useState(false)
+  const prevUnreadMessagesRef = useRef(unreadMessages)
+
+  useEffect(() => {
+    if (unreadMessages > prevUnreadMessagesRef.current) {
+      setIsMessagesBumping(true)
+      const timeout = setTimeout(() => setIsMessagesBumping(false), 600)
+      prevUnreadMessagesRef.current = unreadMessages
+      return () => clearTimeout(timeout)
+    }
+    prevUnreadMessagesRef.current = unreadMessages
+  }, [unreadMessages])
 
   const handleLogout = () => {
     dispatch(logout())
@@ -71,7 +83,7 @@ export default function AppNavbar() {
           </div>
         </Form>
 
-        <div className="d-flex align-items-center gap-3">
+        <div className="d-flex d-lg-none align-items-center gap-3">
           <button
             type="button"
             className="btn btn-sm btn-link text-secondary p-0"
@@ -81,7 +93,7 @@ export default function AppNavbar() {
           >
             <i className={`bi ${theme === 'dark' ? 'bi-sun' : 'bi-moon-stars'} fs-5`}></i>
           </button>
-          <NotificationBell />
+          <NotificationBell id="notification-bell-mobile" />
         </div>
 
         <Navbar.Toggle aria-controls="main-navbar" className="ms-2" />
@@ -111,7 +123,12 @@ export default function AppNavbar() {
             >
               <i className="bi bi-chat-dots me-1"></i>Messaggi
               {unreadMessages > 0 && (
-                <Badge bg="danger" pill className="ms-1" style={{ fontSize: '0.6rem' }}>
+                <Badge
+                  bg="danger"
+                  pill
+                  className={`ms-1 ${isMessagesBumping ? 'like-pop' : ''}`}
+                  style={{ fontSize: '0.6rem' }}
+                >
                   {unreadMessages}
                 </Badge>
               )}
@@ -119,6 +136,18 @@ export default function AppNavbar() {
             <Nav.Link as={NavLink} to="/jobs" onClick={() => setExpanded(false)}>
               <i className="bi bi-briefcase me-1"></i>Lavoro
             </Nav.Link>
+            <div className="d-none d-lg-flex align-items-center gap-3">
+              <button
+                type="button"
+                className="btn btn-sm btn-link text-secondary p-0"
+                onClick={toggleTheme}
+                aria-label={theme === 'dark' ? 'Attiva tema chiaro' : 'Attiva tema scuro'}
+                title={theme === 'dark' ? 'Attiva tema chiaro' : 'Attiva tema scuro'}
+              >
+                <i className={`bi ${theme === 'dark' ? 'bi-sun' : 'bi-moon-stars'} fs-5`}></i>
+              </button>
+              <NotificationBell id="notification-bell-desktop" />
+            </div>
             <Link
               to={`/profile/${user.id}`}
               onClick={() => setExpanded(false)}

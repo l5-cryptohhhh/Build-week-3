@@ -3,7 +3,15 @@ import { REACTIONS, getReaction } from '../../utils/reactions'
 
 export default function ReactionButton({ reactionType, count, isPopping, onReact, variant = 'button' }) {
   const [showPicker, setShowPicker] = useState(false)
+  const [burst, setBurst] = useState(null)
   const closeTimer = useRef(null)
+  const burstId = useRef(0)
+
+  const triggerBurst = (type) => {
+    const reaction = getReaction(type)
+    burstId.current += 1
+    setBurst({ id: burstId.current, emoji: reaction ? reaction.emoji : '👍' })
+  }
 
   const cancelClose = () => {
     if (closeTimer.current) {
@@ -27,11 +35,25 @@ export default function ReactionButton({ reactionType, count, isPopping, onReact
   const handlePick = (type) => {
     onReact(type)
     setShowPicker(false)
+    triggerBurst(type)
   }
 
   const handleMainClick = () => {
-    onReact(reactionType || 'like')
+    const type = reactionType || 'like'
+    onReact(type)
+    if (!reactionType) triggerBurst(type)
   }
+
+  const burstBadge = burst && (
+    <span
+      key={burst.id}
+      className="reaction-burst"
+      aria-hidden="true"
+      onAnimationEnd={() => setBurst(null)}
+    >
+      {burst.emoji}
+    </span>
+  )
 
   const picker = showPicker && (
     <div className="reaction-picker" role="menu">
@@ -58,6 +80,7 @@ export default function ReactionButton({ reactionType, count, isPopping, onReact
         onMouseLeave={scheduleClose}
       >
         {picker}
+        {burstBadge}
         <span
           role="button"
           tabIndex={0}
@@ -86,6 +109,7 @@ export default function ReactionButton({ reactionType, count, isPopping, onReact
       onMouseLeave={scheduleClose}
     >
       {picker}
+      {burstBadge}
       <button
         type="button"
         className={`btn btn-sm ${active ? '' : 'btn-outline-primary'}`}
