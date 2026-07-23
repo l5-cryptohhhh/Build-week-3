@@ -71,10 +71,10 @@ export default function AppNavbar() {
         <Navbar.Collapse id="main-navbar">
           <Nav className="ms-auto align-items-md-center gap-md-3">
             <Nav.Link as={NavLink} to="/" end onClick={() => setExpanded(false)}>
-              Home
+              <i className="bi bi-house me-1"></i>Home
             </Nav.Link>
             <Nav.Link as={NavLink} to={`/profile/${user.id}`} onClick={() => setExpanded(false)}>
-              Il mio profilo
+              <i className="bi bi-person me-1"></i>Il mio profilo
             </Nav.Link>
             <Nav.Link
               as={NavLink}
