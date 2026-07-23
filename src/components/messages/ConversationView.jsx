@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { useDispatch, useSelector, shallowEqual } from 'react-redux'
 import Button from 'react-bootstrap/Button'
 import LoadingSpinner from '../common/LoadingSpinner'
@@ -134,6 +135,15 @@ export default function ConversationView({ conversationId, compact = false, onCl
   return (
     <div className="d-flex flex-column" style={{ height }}>
       <div className="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+        {!compact && (
+          <Link
+            to="/messages"
+            className="btn btn-sm btn-link text-secondary p-0 d-md-none"
+            aria-label="Torna alle conversazioni"
+          >
+            <i className="bi bi-arrow-left fs-5"></i>
+          </Link>
+        )}
         {compact && <Avatar user={otherUser} size={28} />}
         <span className="fw-semibold text-truncate">{otherUser?.fullName || 'Conversazione'}</span>
         {onClose && (

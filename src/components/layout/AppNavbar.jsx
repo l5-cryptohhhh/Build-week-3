@@ -40,7 +40,7 @@ export default function AppNavbar() {
   return (
     <Navbar
       bg="body"
-      expand="md"
+      expand="lg"
       fixed="top"
       className="border-bottom shadow-sm"
       expanded={expanded}
@@ -52,7 +52,11 @@ export default function AppNavbar() {
           <span className="brand-clone">Clone</span>
         </Navbar.Brand>
 
-        <Form onSubmit={handleSearchSubmit} className="d-none d-sm-block mx-3" style={{ width: 280 }}>
+        <Form
+          onSubmit={handleSearchSubmit}
+          className="flex-grow-1 mx-2 mx-lg-3"
+          style={{ minWidth: 0, maxWidth: 280 }}
+        >
           <div className="input-group rounded-pill overflow-hidden">
             <span className="input-group-text bg-body-tertiary border-0">
               <i className="bi bi-search text-secondary"></i>
@@ -67,9 +71,32 @@ export default function AppNavbar() {
           </div>
         </Form>
 
-        <Navbar.Toggle aria-controls="main-navbar" className="ms-auto" />
+        <div className="d-flex align-items-center gap-3">
+          <button
+            type="button"
+            className="btn btn-sm btn-link text-secondary p-0"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Attiva tema chiaro' : 'Attiva tema scuro'}
+            title={theme === 'dark' ? 'Attiva tema chiaro' : 'Attiva tema scuro'}
+          >
+            <i className={`bi ${theme === 'dark' ? 'bi-sun' : 'bi-moon-stars'} fs-5`}></i>
+          </button>
+          <NotificationBell />
+        </div>
+
+        <Navbar.Toggle aria-controls="main-navbar" className="ms-2" />
         <Navbar.Collapse id="main-navbar">
-          <Nav className="ms-auto align-items-md-center gap-md-3">
+          <div className="d-flex d-lg-none justify-content-center mb-2">
+            <Link
+              to={`/profile/${user.id}`}
+              onClick={() => setExpanded(false)}
+              className="d-inline-flex align-items-center text-decoration-none text-dark py-2"
+            >
+              <Avatar user={user} size={32} className="me-2" />
+              {user.fullName}
+            </Link>
+          </div>
+          <Nav className="ms-auto align-items-md-center gap-md-3 text-center text-lg-start">
             <Nav.Link as={NavLink} to="/" end onClick={() => setExpanded(false)}>
               <i className="bi bi-house me-1"></i>Home
             </Nav.Link>
@@ -92,20 +119,10 @@ export default function AppNavbar() {
             <Nav.Link as={NavLink} to="/jobs" onClick={() => setExpanded(false)}>
               <i className="bi bi-briefcase me-1"></i>Lavoro
             </Nav.Link>
-            <button
-              type="button"
-              className="btn btn-sm btn-link text-secondary p-0"
-              onClick={toggleTheme}
-              aria-label={theme === 'dark' ? 'Attiva tema chiaro' : 'Attiva tema scuro'}
-              title={theme === 'dark' ? 'Attiva tema chiaro' : 'Attiva tema scuro'}
-            >
-              <i className={`bi ${theme === 'dark' ? 'bi-sun' : 'bi-moon-stars'} fs-5`}></i>
-            </button>
-            <NotificationBell />
             <Link
               to={`/profile/${user.id}`}
               onClick={() => setExpanded(false)}
-              className="d-inline-flex align-items-center text-decoration-none text-dark py-2"
+              className="d-none d-lg-inline-flex align-items-center text-decoration-none text-dark py-2"
             >
               <Avatar user={user} size={32} className="me-2" />
               {user.fullName}

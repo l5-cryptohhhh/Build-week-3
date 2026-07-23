@@ -29,6 +29,11 @@ export default function FeedPage() {
     dispatch(fetchFollowData(currentUser.id))
   }, [dispatch, currentUser.id])
 
+  const handleFeedSelect = (key) => {
+    if (key === 'saved') return
+    setFeedMode(key)
+  }
+
   const handleCreatePost = ({ content, imageUrl }) => {
     const now = new Date().toISOString()
     dispatch(
@@ -85,13 +90,18 @@ export default function FeedPage() {
           </Card.Body>
         </Card>
 
-        <Nav variant="pills" activeKey={feedMode} onSelect={setFeedMode} className="mb-3 gap-2">
+        <Nav variant="pills" activeKey={feedMode} onSelect={handleFeedSelect} className="mb-3 gap-2">
           <Nav.Item>
             <Nav.Link eventKey="all">Tutti i post</Nav.Link>
           </Nav.Item>
           <Nav.Item>
             <Nav.Link eventKey="following">
               <i className="bi bi-person-heart me-1"></i>Chi segui
+            </Nav.Link>
+          </Nav.Item>
+          <Nav.Item className="d-lg-none">
+            <Nav.Link as={Link} to="/saved" eventKey="saved">
+              <i className="bi bi-bookmark-fill me-1"></i>Elementi salvati
             </Nav.Link>
           </Nav.Item>
         </Nav>
