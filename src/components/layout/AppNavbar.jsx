@@ -89,6 +89,9 @@ export default function AppNavbar() {
                 </Badge>
               )}
             </Nav.Link>
+            <Nav.Link as={NavLink} to="/jobs" onClick={() => setExpanded(false)}>
+              <i className="bi bi-briefcase me-1"></i>Lavoro
+            </Nav.Link>
             <button
               type="button"
               className="btn btn-sm btn-link text-secondary p-0"
