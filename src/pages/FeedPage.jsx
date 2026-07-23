@@ -11,6 +11,7 @@ import FollowingFeedList from '../components/posts/FollowingFeedList'
 import Avatar from '../components/common/Avatar'
 import NewsWidget from '../components/news/NewsWidget'
 import AdWidget from '../components/news/AdWidget'
+import PuzzlesWidget from '../components/games/PuzzlesWidget'
 import SidebarFooter from '../components/layout/SidebarFooter'
 import ConnectionsCard from '../components/profile/ConnectionsCard'
 import { createPost } from '../features/posts/postsSlice'
@@ -101,6 +102,7 @@ export default function FeedPage() {
       <Col lg={3} className="d-none d-lg-block">
         <div className="feed-sidebar">
           <NewsWidget />
+          <PuzzlesWidget />
           <AdWidget />
           <SidebarFooter />
         </div>

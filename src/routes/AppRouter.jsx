@@ -10,6 +10,7 @@ import MessagesPage from '../pages/MessagesPage'
 import SearchPage from '../pages/SearchPage'
 import SavedPostsPage from '../pages/SavedPostsPage'
 import JobsPage from '../pages/JobsPage'
+import GamePage from '../pages/GamePage'
 import NotFoundPage from '../pages/NotFoundPage'
 
 export default function AppRouter() {
@@ -29,6 +30,7 @@ export default function AppRouter() {
           <Route path="/search" element={<SearchPage />} />
           <Route path="/saved" element={<SavedPostsPage />} />
           <Route path="/jobs" element={<JobsPage />} />
+          <Route path="/games/:slug" element={<GamePage />} />
         </Route>
       </Route>
 
