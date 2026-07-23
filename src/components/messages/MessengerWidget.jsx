@@ -54,23 +54,11 @@ export default function MessengerWidget() {
   }
 
   return (
-    <div className="position-fixed bottom-0 end-0 me-3" style={{ zIndex: 1040 }}>
-      {openConversationId && isListOpen && (
-        <div
-          className="position-absolute bottom-0 bg-body border rounded-top-3 shadow-lg"
-          style={{ width: 300, right: 320 }}
-        >
-          <div className="p-2">
-            <ConversationView
-              conversationId={openConversationId}
-              compact
-              onClose={() => setOpenConversationId(null)}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="bg-body border rounded-top-3 shadow-lg" style={{ width: 300 }}>
+    <div
+      className="position-fixed bottom-0 end-0 me-3"
+      style={{ zIndex: 1040, width: 'min(300px, calc(100vw - 1.5rem))' }}
+    >
+      <div className="bg-body border rounded-top-3 shadow-lg">
         <button
           type="button"
           className="btn d-flex align-items-center gap-2 w-100 px-3 py-2 border-0 rounded-0 fw-semibold"
@@ -86,7 +74,17 @@ export default function MessengerWidget() {
           <i className={`bi ${isListOpen ? 'bi-chevron-down' : 'bi-chevron-up'} ms-auto`}></i>
         </button>
 
-        {isListOpen && (
+        {isListOpen && openConversationId && (
+          <div className="border-top p-2" style={{ height: 360 }}>
+            <ConversationView
+              conversationId={openConversationId}
+              compact
+              onClose={() => setOpenConversationId(null)}
+            />
+          </div>
+        )}
+
+        {isListOpen && !openConversationId && (
           <div className="border-top overflow-auto" style={{ maxHeight: 360 }}>
             {conversations.length === 0 ? (
               <div className="p-3">
