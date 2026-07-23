@@ -11,7 +11,6 @@ import useDebounce from '../hooks/useDebounce'
 import {
   searchJobs,
   showMoreJobs,
-  selectJobsQuery,
   selectVisibleJobs,
   selectJobsHasMore,
   selectJobsTotal,
@@ -20,20 +19,20 @@ import {
 
 export default function JobsPage() {
   const dispatch = useDispatch()
-  const query = useSelector(selectJobsQuery)
   const jobs = useSelector(selectVisibleJobs)
   const hasMore = useSelector(selectJobsHasMore)
   const total = useSelector(selectJobsTotal)
   const status = useSelector(selectJobsStatus)
-  const [input, setInput] = useState(query)
+  // Campo vuoto di default: la ricerca con query vuota torna comunque il
+  // catalogo generico (vedi jobsService.searchJobs), cosi' la pagina non
+  // parte vuota ma il campo non e' precompilato con nulla di scelto per
+  // l'utente.
+  const [input, setInput] = useState('')
   const debouncedInput = useDebounce(input, 400)
 
   useEffect(() => {
-    if (!debouncedInput.trim()) return
     dispatch(searchJobs(debouncedInput.trim()))
   }, [dispatch, debouncedInput])
-
-  const hasQuery = input.trim().length > 0
 
   return (
     <Row>
@@ -48,48 +47,38 @@ export default function JobsPage() {
           className="mb-4"
         />
 
-        {!hasQuery ? (
-          <EmptyState
-            icon="bi-briefcase"
-            title="Cerca la tua prossima opportunita'"
-            description="Digita una parola chiave per vedere le offerte disponibili."
-          />
-        ) : (
+        {status === 'loading' && jobs.length === 0 && (
           <>
-            {status === 'loading' && jobs.length === 0 && (
-              <>
-                <JobCardSkeleton />
-                <JobCardSkeleton />
-                <JobCardSkeleton />
-              </>
-            )}
+            <JobCardSkeleton />
+            <JobCardSkeleton />
+            <JobCardSkeleton />
+          </>
+        )}
 
-            {status === 'failed' && (
-              <EmptyState
-                icon="bi-exclamation-triangle"
-                title="Offerte non disponibili"
-                description="Riprova piu' tardi."
-              />
-            )}
+        {status === 'failed' && (
+          <EmptyState
+            icon="bi-exclamation-triangle"
+            title="Offerte non disponibili"
+            description="Riprova piu' tardi."
+          />
+        )}
 
-            {status === 'succeeded' && jobs.length === 0 && (
-              <EmptyState icon="bi-briefcase" title="Nessuna offerta trovata" />
-            )}
+        {status === 'succeeded' && jobs.length === 0 && (
+          <EmptyState icon="bi-briefcase" title="Nessuna offerta trovata" />
+        )}
 
-            {jobs.length > 0 && (
-              <>
-                <p className="text-secondary small mb-3">{total} offerte trovate</p>
-                {jobs.map((job) => (
-                  <JobCard key={job._id} job={job} />
-                ))}
-                {hasMore && (
-                  <div className="text-center mb-3">
-                    <Button variant="outline-primary" onClick={() => dispatch(showMoreJobs())}>
-                      Carica altre offerte
-                    </Button>
-                  </div>
-                )}
-              </>
+        {jobs.length > 0 && (
+          <>
+            <p className="text-secondary small mb-3">{total} offerte trovate</p>
+            {jobs.map((job) => (
+              <JobCard key={job._id} job={job} />
+            ))}
+            {hasMore && (
+              <div className="text-center mb-3">
+                <Button variant="outline-primary" onClick={() => dispatch(showMoreJobs())}>
+                  Carica altre offerte
+                </Button>
+              </div>
             )}
           </>
         )}
