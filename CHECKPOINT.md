@@ -212,6 +212,43 @@ duplicare utenti gia' esistenti (verifica per email prima di creare).
 
 ## Changelog
 
+- **2026-07-23** — Nuova sezione "Offerte di lavoro" (`/jobs`), su richiesta
+  esplicita. Prima scelta discussa e scartata: SerpApi (`google_jobs`) non
+  espone header CORS e richiede quindi un proxy backend per non esporre la
+  api key nel bundle client — in contrasto con la scelta serverless gia'
+  presa con la migrazione a Firebase (niente Cloud Functions per restare sul
+  piano Spark senza carta di credito, vedi voce del 2026-07-22). Sostituita
+  su indicazione dell'utente con l'API pubblica gia' nota nell'ecosistema
+  Epicode/Strive (`https://strive-benchmark.herokuapp.com/api/jobs`): nessuna
+  key, `Access-Control-Allow-Origin: *`, chiamabile direttamente dal client
+  come `newsService.js`.
+  - **Scoperta sull'API**: i parametri `page`/`pageSize` documentati non
+    hanno alcun effetto (verificato con richieste dirette: tornano sempre
+    *tutti* i risultati che matchano `search`, fino a 1900 offerte totali
+    senza query, ~10MB di payload). `jobsService.searchJobs(query)` quindi
+    non tenta paginazione server-side: manda solo `?search=`, e
+    `jobsSlice.js` pagina lato client (`visibleCount`/`showMoreJobs`, stesso
+    principio gia' usato da `NewsWidget` per il tetto di notizie). Per lo
+    stesso motivo `JobsPage` non scarica nulla finche' l'utente non digita
+    una query (come gia' fa `SearchPage`) — un fetch di default scaricherebbe
+    l'intero dataset da 10MB.
+  - Nuovo `src/api/jobsService.js`, `src/features/jobs/jobsSlice.js`
+    (registrato in `store.js`), `src/pages/JobsPage.jsx` (stesso pattern di
+    `SearchPage`: campo di ricerca con debounce, stato vuoto prima di
+    digitare, skeleton, bottone "Carica altre offerte"), nuovi
+    `JobCard.jsx`/`JobCardSkeleton.jsx` in `src/components/jobs/`. La
+    `description` (HTML) viene ripulita con uno strip-tag prima di essere
+    mostrata in `JobCard` (mai `dangerouslySetInnerHTML`, il contenuto viene
+    da una terza parte non fidata). Nuova voce "Lavoro" in `AppNavbar.jsx` e
+    l'immagine gia' esistente `AdWidget.jsx` ("annuncio ricerca lavoro" nella
+    sidebar del feed, prima non cliccabile) ora e' un link a `/jobs`.
+  - Verificato in browser reale con Playwright (utente registrato al volo):
+    navigazione da navbar e da `AdWidget`, ricerca "react" -> 188 risultati,
+    10 card renderizzate con titolo/azienda/badge/link esterno funzionante,
+    "Carica altre offerte" incrementale. Nessun errore in console riconducibile
+    a questa feature (i `permission-denied` di Firestore visti nello stesso
+    test sono il limite gia' noto delle security rules non ripubblicate sul
+    progetto Firebase live, non correlati). Lint e build puliti.
 - **2026-07-22** — Verifica del perche' le reaction sui commenti (voce
   precedente) non comparivano: confermato in browser reale che il problema
   e' **`firestore.rules` non ancora pubblicato sul progetto Firebase live**

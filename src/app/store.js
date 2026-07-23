@@ -8,6 +8,7 @@ import notificationsReducer from '../features/notifications/notificationsSlice'
 import searchReducer from '../features/search/searchSlice'
 import followReducer from '../features/follow/followSlice'
 import presenceReducer from '../features/presence/presenceSlice'
+import jobsReducer from '../features/jobs/jobsSlice'
 import { toastMiddleware } from './toastMiddleware'
 import { loadingBarMiddleware } from './loadingBarMiddleware'
 
@@ -22,6 +23,7 @@ export const store = configureStore({
     search: searchReducer,
     follow: followReducer,
     presence: presenceReducer,
+    jobs: jobsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(toastMiddleware, loadingBarMiddleware),
