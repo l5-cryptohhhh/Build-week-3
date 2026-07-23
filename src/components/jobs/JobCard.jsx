@@ -1,6 +1,9 @@
+import { useDispatch, useSelector } from 'react-redux'
 import Card from 'react-bootstrap/Card'
 import Badge from 'react-bootstrap/Badge'
 import { formatRelativeTime } from '../../utils/dateFormat'
+import { selectCurrentUser } from '../../features/auth/authSlice'
+import { updateProfile } from '../../features/users/usersSlice'
 
 function stripHtml(html) {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -12,8 +15,19 @@ function formatJobType(jobType) {
 }
 
 export default function JobCard({ job }) {
+  const dispatch = useDispatch()
+  const currentUser = useSelector(selectCurrentUser)
   const description = stripHtml(job.description || '')
   const jobType = formatJobType(job.job_type)
+  const savedJobs = currentUser?.savedJobs || []
+  const isSaved = savedJobs.some((saved) => saved._id === job._id)
+
+  const handleToggleSave = () => {
+    const nextSavedJobs = isSaved
+      ? savedJobs.filter((saved) => saved._id !== job._id)
+      : [job, ...savedJobs]
+    dispatch(updateProfile({ id: currentUser.id, changes: { savedJobs: nextSavedJobs } }))
+  }
 
   return (
     <Card className="shadow-sm mb-3 animate-fade-in">
@@ -26,9 +40,20 @@ export default function JobCard({ job }) {
               {job.candidate_required_location && ` · ${job.candidate_required_location}`}
             </div>
           </div>
-          <span className="text-secondary small text-nowrap">
-            {formatRelativeTime(job.publication_date)}
-          </span>
+          <div className="d-flex align-items-center gap-2 text-nowrap">
+            <span className="text-secondary small">{formatRelativeTime(job.publication_date)}</span>
+            {currentUser && (
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={handleToggleSave}
+                aria-label={isSaved ? 'Rimuovi dai salvati' : 'Salva offerta'}
+                title={isSaved ? 'Rimuovi dai salvati' : 'Salva offerta'}
+              >
+                <i className={`bi ${isSaved ? 'bi-bookmark-fill' : 'bi-bookmark'}`}></i>
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="d-flex flex-wrap gap-2 mb-2">
