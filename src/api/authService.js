@@ -55,17 +55,37 @@ export function logout() {
   clearUser()
 }
 
-export function restoreSession() {
+// Non ci si fida ciecamente dello snapshot utente salvato in localStorage:
+// se il backend mock viene resettato/reseedato (vedi CHECKPOINT.md), lo
+// stesso id puo' finire per appartenere a un account diverso, e una sessione
+// cache scaduta mostrerebbe silenziosamente il profilo di qualcun altro. Si
+// riverifica quindi l'id contro il server e si confronta l'email presente
+// nel token con quella dell'utente restituito, esattamente come fa
+// resolveUser() al login.
+export async function restoreSession() {
   const token = getToken()
-  const user = getStoredUser()
-  if (token && user) {
-    if (isTokenExpired(token)) {
+  if (!token || isTokenExpired(token)) {
+    logout()
+    return null
+  }
+
+  const cachedUser = getStoredUser()
+
+  try {
+    const { sub, email } = decodeJwtPayload(token)
+    const { data: freshUser } = await httpClient.get(`/users/${sub}`)
+    if (freshUser.email !== email) {
+      // L'id nel token ora appartiene a un account diverso: la sessione non e' piu' valida.
       logout()
       return null
     }
-    return { token, user }
+    saveUser(freshUser)
+    return { token, user: freshUser }
+  } catch {
+    // Server irraggiungibile: meglio riusare la cache che disconnettere per un blip di rete.
+    if (cachedUser) return { token, user: cachedUser }
+    return null
   }
-  return null
 }
 
 export function persistUser(user) {
