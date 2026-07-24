@@ -1,6 +1,6 @@
 # SocialApp — Build Week 3
 
-Social network didattico: registrazione/login, feed con post e commenti, like, profilo utente e messaggistica privata in tempo reale. Frontend React + Redux Toolkit, backend Firebase (Auth + Firestore + Storage).
+Social network didattico: registrazione/login, feed con post e commenti, like, profilo utente, messaggistica privata in tempo reale, offerte di lavoro e rompicapo giocabili in stile LinkedIn. Frontend React + Redux Toolkit, backend Firebase (Auth + Firestore + Storage).
 
 ## Stack
 
@@ -9,8 +9,10 @@ Social network didattico: registrazione/login, feed con post e commenti, like, p
 - Redux Toolkit 2 + React Redux 9
 - React Bootstrap 2 + Bootstrap 5 + Bootstrap Icons
 - Firebase: Authentication (email/password), Firestore (dati + realtime via `onSnapshot`), Storage (solo per i video dei post — avatar/copertina/foto post sono base64 in Firestore, vedi sotto)
-- Axios (solo per il widget notizie esterno, `src/api/newsService.js`)
+- Axios (chiamate a due API esterne: notizie in `src/api/newsService.js` e offerte di lavoro in `src/api/jobsService.js`, nessun backend proprio nel mezzo)
 - oxlint (linting)
+
+Nessuna dipendenza aggiuntiva per i rompicapo (Zip/Patches/Mini Sudoku/Tango, vedi sotto): generatori/board scritti da zero in JS puro + React, nessuna libreria di terze parti.
 
 ## Installazione
 
@@ -136,17 +138,20 @@ scripts/
   seedFirestore.js             # migrazione una tantum su Firebase Auth + Firestore
 src/
   firebase.js                # inizializzazione app Firebase (Auth/Firestore/Storage)
-  api/                        # servizi dati: un file per risorsa, parlano direttamente con l'SDK Firebase
+  api/                        # servizi dati: newsService/jobsService (REST esterni via axios), resto via SDK Firebase
   app/store.js                # configurazione store Redux
-  features/                   # slice Redux (auth, posts, comments, users, messages, notifications, search, follow, presence)
+  features/                   # slice Redux (auth, posts, comments, users, messages, notifications, search, follow, jobs, presence)
   routes/                     # AppRouter, ProtectedRoute, PublicRoute
+  data/puzzles.js              # config statica dei 4 rompicapo (slug, nome, icona, colore)
   components/
     layout/                    # AppNavbar, MainLayout
     common/                    # LoadingSpinner, ErrorAlert, EmptyState, Avatar
     posts/, comments/, messages/, profile/, notifications/, search/
-  pages/                      # Login, Register, Feed, Profile, Messages, Search, NotFound
+    jobs/                      # JobCard, JobCardSkeleton
+    games/                     # PuzzlesWidget, MiniSudoku, Tango, Zip, Patches
+  pages/                      # Login, Register, Feed, Profile, Messages, Search, Jobs, GamePage, SavedPosts, NotFound
   hooks/                      # useActivityRealtime, useConversationsRealtime, useNotificationsRealtime, usePresence, useDebounce
-  utils/                      # validators, formattazione date, anteprima link
+  utils/                      # validators, formattazione date, anteprima link, generatori dei rompicapo (miniSudoku/tango/zip/patches)
   App.jsx                     # componente radice (Redux Provider + Router + sottoscrizione auth/realtime)
   main.jsx                    # bootstrap tecnico (mount su #root)
 ```
@@ -162,6 +167,9 @@ src/
 - Conversazioni private e messaggi in tempo reale via Firestore (creazione, modifica, eliminazione, stato letto/non letto), con paginazione dei messaggi piu' vecchi
 - Notifiche in tempo reale per nuovi messaggi, commenti, "mi piace" e nuovi follower, con badge contatore in navbar
 - Ricerca utenti e post (prefix-match, risultati paginati)
+- Offerte di lavoro (`/jobs`, API pubblica `strive-benchmark`): ricerca per parola chiave, paginazione lato client, salvataggio nei preferiti (vedi sotto)
+- Rompicapo giocabili in stile LinkedIn (`/games/:slug`, card "I rompicapo di oggi" in sidebar): **Zip** (percorso hamiltoniano su griglia 6x6 con checkpoint numerati), **Patches** (partizione della griglia in rettangoli con indizio area+forma, stile Shikaku), **Mini Sudoku** (6x6, box 2x3), **Tango** (griglia sole/luna 6x6 con vincoli di bilanciamento e uguaglianza/differenza) — generati proceduralmente ad ogni partita, nessuna libreria esterna
+- Elementi salvati (`/saved`): post e offerte di lavoro salvati insieme nella stessa pagina (offerte in cima), ciascuno con la propria card invariata (`PostCard`/`JobCard`)
 - Stati di caricamento, errore e vuoto su ogni schermata con fetch
 - Controlli di autorizzazione reali lato server via Firestore Security Rules (non solo lato client): un utente non partecipante non puo' leggere/scrivere una conversazione/messaggio altrui nemmeno bypassando la UI
 
@@ -174,6 +182,9 @@ src/
 - **Avatar/copertina/foto dei post limitati a 300-700KB** (base64 in Firestore, non un vero object storage — vedi "Upload immagini vs Storage" sopra): niente OAuth/pagamento (fuori scope dichiarato).
 - `GET` su `users` non filtra campi sensibili lato server: qualunque utente autenticato puo' leggere il profilo Firestore di un altro utente (email inclusa) — le password non sono piu' un problema (gestite da Firebase Auth, mai in Firestore), ma l'email sì.
 - Le notifiche di commento/mi-piace aprono la home (non esiste ancora una rotta di dettaglio del singolo post da linkare).
+- **Offerte di lavoro salvate come oggetto intero, non come id**: l'API `strive-benchmark` non espone un endpoint "get job by id", quindi il segnalibro su un'offerta salva l'intero oggetto job dentro `savedJobs` sull'utente (stesso pattern di `experiences`) invece di un riferimento leggero.
+- **Rompicapo senza verifica di unicita' della soluzione**: i generatori (Zip/Patches/Mini Sudoku/Tango) garantiscono che *una* soluzione valida esista, ma non escludono soluzioni alternative altrettanto valide — la vittoria si basa sulla correttezza strutturale del tentativo del giocatore, non sul confronto con la soluzione originale. Difficolta' fissa (nessun livello facile/difficile), nessuna persistenza della partita in corso (si rigenera ad ogni apertura/"Nuova partita").
+- **Notizie senza link cliccabile all'articolo**: la chiave apitube usata e' di livello trial — ogni campo con un URL (`href`, `source.domain`, `links[].url`) torna troncato con un suffisso letterale `[Upgrade subscription plan]`, quindi non c'e' modo di linkare l'articolo originale senza passare a un piano a pagamento.
 
 ## Possibili miglioramenti futuri
 
@@ -181,3 +192,5 @@ src/
 - Rotta di dettaglio del singolo post, per linkare le notifiche di commento/mi-piace al post esatto
 - Presenza via Realtime Database (`onDisconnect`) invece dell'heartbeat Firestore, per una rilevazione offline istantanea
 - Ricerca full-text reale con un servizio dedicato (es. Algolia/Typesense) al posto del prefix-match
+- Livelli di difficolta' e verifica di unicita' della soluzione per i rompicapo
+- Piano apitube a pagamento (o provider di notizie alternativo) per avere link cliccabili agli articoli
