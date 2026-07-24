@@ -1,6 +1,6 @@
 # SocialApp — Build Week 3
 
-Social network didattico: registrazione/login, feed con post e commenti, like, profilo utente e messaggistica privata. Frontend React + Redux Toolkit, backend fittizio JSON Server + JSON Server Auth.
+Social network didattico: registrazione/login, feed con post e commenti, like, profilo utente, messaggistica privata in tempo reale, offerte di lavoro e rompicapo giocabili in stile LinkedIn. Frontend React + Redux Toolkit, backend Firebase (Auth + Firestore + Storage).
 
 ## Stack
 
@@ -8,10 +8,11 @@ Social network didattico: registrazione/login, feed con post e commenti, like, p
 - React Router 7 (in modalita' libreria/dichiarativa, non "framework mode")
 - Redux Toolkit 2 + React Redux 9
 - React Bootstrap 2 + Bootstrap 5 + Bootstrap Icons
-- Axios
-- Socket.IO (client + server) per messaggistica/notifiche in tempo reale
-- JSON Server 0.17 + JSON Server Auth 2.1 (backend mock con JWT)
+- Firebase: Authentication (email/password), Firestore (dati + realtime via `onSnapshot`), Storage (solo per i video dei post — avatar/copertina/foto post sono base64 in Firestore, vedi sotto)
+- Axios (chiamate a due API esterne: notizie in `src/api/newsService.js` e offerte di lavoro in `src/api/jobsService.js`, nessun backend proprio nel mezzo)
 - oxlint (linting)
+
+Nessuna dipendenza aggiuntiva per i rompicapo (Zip/Patches/Mini Sudoku/Tango, vedi sotto): generatori/board scritti da zero in JS puro + React, nessuna libreria di terze parti.
 
 ## Installazione
 
@@ -19,32 +20,58 @@ Social network didattico: registrazione/login, feed con post e commenti, like, p
 npm install
 ```
 
+## Configurazione Firebase (obbligatoria prima del primo avvio)
+
+L'app si connette a un progetto Firebase reale, non a un backend incluso nel repo.
+
+1. Crea un progetto su [console.firebase.google.com](https://console.firebase.google.com).
+2. Abilita **Authentication -> Sign-in method -> Email/Password**.
+3. Crea un database **Firestore** (modalita' produzione: le regole sono in `firestore.rules`).
+4. **Storage e' opzionale**: serve solo per l'upload di video nei post (avatar,
+   copertina e foto dei post funzionano gia' senza, salvati come base64 in
+   Firestore — vedi "Upload immagini vs Storage" sotto). Dal 3 febbraio 2026
+   Firebase richiede il piano **Blaze** (pay-as-you-go, carta di credito
+   collegata) anche solo per abilitare Storage — resta comunque gratuito
+   restando nei limiti "Always Free" di Google Cloud Storage (5GB storage,
+   100GB di traffico/mese nelle region US). Se non vuoi collegare una carta,
+   salta questo passaggio: l'app funziona lo stesso, semplicemente il
+   bottone "Video" nel form dei post non avra' un vero object storage dietro
+   (vedi limiti noti).
+5. Nelle impostazioni del progetto, aggiungi un'app Web e copia i valori del `firebaseConfig` risultante nel file `.env` (gia' presente in repo e tracciato in git: sono valori pubblici, la sicurezza reale e' nelle Security Rules, non in questi campi):
+
+```
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+```
+
+6. Pubblica le Security Rules (via [Firebase CLI](https://firebase.google.com/docs/cli) `firebase deploy --only firestore:rules,storage`, oppure incollandole a mano nella console sotto Firestore/Storage -> Regole).
+
+Al primo utilizzo di ogni combinazione di filtri Firestore puo' comparire un errore "the query requires an index" con un link diretto nella console: e' normale, basta cliccarlo una volta e attendere la creazione dell'indice (circa un minuto).
+
+### Dati demo (opzionale)
+
+Per popolare il progetto con gli stessi utenti/post/messaggi usati in sviluppo:
+
+1. Firebase Console -> Impostazioni progetto -> Account di servizio -> Genera nuova chiave privata, salvala come `scripts/serviceAccountKey.json` (gia' nel `.gitignore`, e' un segreto: da' accesso admin illimitato al progetto).
+2. `npm run seed`
+
+Crea gli utenti demo in Firebase Auth con password unica **Password123!** e popola Firestore con i post/commenti/like/conversazioni/messaggi corrispondenti (i dati sorgente sono in `scripts/demoData.json`).
+
 ## Avvio
 
-Frontend (Vite, porta 5173) e backend mock (JSON Server Auth, porta 3001) insieme:
-
 ```bash
-npm run dev:all
+npm run dev   # frontend su http://localhost:5173
 ```
 
-Oppure separatamente, in due terminali:
-
-```bash
-npm run dev      # frontend su http://localhost:5173
-npm run server   # backend mock su http://localhost:3001
-```
-
-## Variabili ambiente
-
-File `.env` (gia' incluso):
-
-```
-VITE_API_URL=http://localhost:3001
-```
+Non serve piu' un secondo processo di backend: Firestore/Auth/Storage sono raggiunti direttamente dal client via SDK.
 
 ## Credenziali utenti demo
 
-Password per tutti gli utenti demo: **Password123!**
+Valide solo dopo aver eseguito `npm run seed` (vedi sopra). Password per tutti: **Password123!**
 
 | Email | Nome | Username |
 |---|---|---|
@@ -60,87 +87,110 @@ E' possibile anche registrare un nuovo account dalla pagina `/register`.
 npm run lint       # oxlint
 npm run build      # build di produzione (vite build)
 npm run preview    # anteprima della build
-npm run server     # solo backend mock
-npm run dev:all    # frontend + backend insieme
+npm run seed       # popola Firestore/Auth con i dati demo (richiede scripts/serviceAccountKey.json)
 ```
 
-## Endpoint del backend mock
+## Modello dati Firestore
 
-Base URL: `http://localhost:3001`
+Collection principali (vedi `firestore.rules` per i permessi esatti):
 
-| Metodo | Endpoint | Note |
-|---|---|---|
-| POST | `/register` | crea utente + ritorna `accessToken` |
-| POST | `/login` | ritorna `accessToken` + `user` |
-| GET/PATCH | `/users/:id` | lettura per utenti loggati, scrittura solo dal proprietario |
-| GET | `/users?q=&_page=&_limit=` | ricerca full-text (nome, username, ...) |
-| GET/POST/PATCH/DELETE | `/posts` | scrittura solo dall'autore; supporta `?userId=`, `?q=`, `?_page=&_limit=&_sort=&_order=` |
-| GET/POST/PATCH/DELETE | `/comments` | scrittura/cancellazione solo dall'autore; `?postId=`, `?_page=&_limit=` |
-| GET/POST/DELETE | `/likes` | un record per (postId, userId); crea una notifica per l'autore del post |
-| GET/POST | `/conversations` | `?participant1Id=`, `?participant2Id=` |
-| GET/POST/PATCH/DELETE | `/messages` | `?conversationId=`, `?_page=&_limit=`; il campo `userId` rappresenta il mittente |
-| GET/PATCH | `/notifications` | `?userId=`; solo il destinatario puo' leggerle/segnarle come lette |
+| Collection | Note |
+|---|---|
+| `users/{uid}` | doc id = uid di Firebase Auth; profilo esteso (username, bio, `savedPostIds`, `experiences`, ...) |
+| `posts` | `userId`, `content`/`contentLower` (per la ricerca), `imageUrl`, timestamp |
+| `comments` | `postId`, `userId`, `content` |
+| `likes` | reaction sui post: id deterministico `postId_userId`, campo `type` (`like`/`celebrate`/`support`/`love`/`insightful`/`funny`, vedi `src/utils/reactions.js`) |
+| `commentLikes` | reaction sui commenti: stesso schema di `likes`, id deterministico `commentId_userId` |
+| `follows` | id deterministico `followerId_followingId` |
+| `conversations` | `participant1Id`/`participant2Id` + `participantIds` (array, per query `array-contains`) |
+| `messages` | `conversationId` + `participantIds` denormalizzato dalla conversazione (necessario perche' le Security Rules su query "list" non possono dipendere da un `get()` a un altro documento) |
+| `notifications` | create **client-side** da chi compie l'azione (like/commento/follow/messaggio), non da un backend: nessuna Cloud Function in questo progetto (piano Firebase gratuito) |
+| `presence/{uid}` | `lastActiveAt`, aggiornato a heartbeat (vedi limiti noti) |
 
-Le regole di autorizzazione sono definite in `server/routes.json` (formato JSON Server Auth, notazione tipo Unix `rwx`).
+### Upload immagini vs Storage
 
-### WebSocket (Socket.IO)
+Per restare sul piano gratuito Spark (niente carta di credito), solo i
+**video** dei post passano da Firebase Storage (`src/api/storageService.js`).
+Avatar, copertina profilo e foto dei post sono invece salvati come **base64
+direttamente nel documento Firestore** (`ProfileEditForm.jsx`/`PostForm.jsx`
+leggono il file con `FileReader.readAsDataURL`, nessun upload). Firestore
+impone un limite fisso di **1MB per documento**, quindi i limiti lato client
+sono piu' stretti che con un vero object storage: 300KB per avatar/copertina
+(condividono lo stesso documento utente), 700KB per le foto dei post. Se hai
+bisogno di immagini piu' pesanti, comprimile/ridimensionale prima di
+caricarle, oppure abilita Storage (vedi sopra) e riporta anche foto/avatar a
+un vero upload — il codice per farlo (`uploadBytes`/`getDownloadURL`) e'
+ancora in `storageService.js`, basta riattaccarlo negli stessi punti usati
+oggi per i video.
 
-Stesso host/porta del backend mock (`server/server.js` espone un unico
-`http.Server` condiviso tra REST e Socket.IO). Handshake autenticato con lo
-stesso JWT del login (`auth: { token }`); alla connessione ogni client entra
-nella room `user:<id>` e riceve solo eventi diretti a lui. Eventi emessi dal
-server (vedi `server/realtime.js`): `message:new`, `message:updated`,
-`message:deleted`, `conversation:new`, `notification:new`.
+### Realtime
+
+Non c'e' piu' un server WebSocket: ogni lista rilevante (feed, commenti, like, follow, conversazioni, messaggi, notifiche) e' un listener `onSnapshot` di Firestore, montato nei hook in `src/hooks/` (`useActivityRealtime`, `useConversationsRealtime`, `useNotificationsRealtime`, `usePresence`). La paginazione ("carica altri...") resta invece a lettura singola (`getDocs`) con cursori basati sul campo `createdAt`.
 
 ## Struttura del progetto
 
 ```
-server/
-  db.json                 # dati demo + stato runtime
-  routes.json             # permessi JSON Server Auth
-  server.js               # bootstrap Express + Socket.IO
-  realtime.js             # eventi realtime e notifiche (hook router.render)
+firestore.rules            # Security Rules Firestore
+storage.rules               # Security Rules Storage
+firebase.json                # config Firebase CLI (rules + hosting)
+scripts/
+  demoData.json               # dati demo sorgente (ex server/db.seed.json)
+  seedFirestore.js             # migrazione una tantum su Firebase Auth + Firestore
 src/
-  socket.js               # client Socket.IO singleton
-  api/                    # client HTTP + servizi (uno per risorsa)
-  app/store.js            # configurazione store Redux
-  features/               # slice Redux (auth, posts, comments, users, messages, notifications, search)
-  routes/                 # AppRouter, ProtectedRoute, PublicRoute
+  firebase.js                # inizializzazione app Firebase (Auth/Firestore/Storage)
+  api/                        # servizi dati: newsService/jobsService (REST esterni via axios), resto via SDK Firebase
+  app/store.js                # configurazione store Redux
+  features/                   # slice Redux (auth, posts, comments, users, messages, notifications, search, follow, jobs, presence)
+  routes/                     # AppRouter, ProtectedRoute, PublicRoute
+  data/puzzles.js              # config statica dei 4 rompicapo (slug, nome, icona, colore)
   components/
-    layout/                # AppNavbar, MainLayout
-    common/                # LoadingSpinner, ErrorAlert, EmptyState, Avatar
+    layout/                    # AppNavbar, MainLayout
+    common/                    # LoadingSpinner, ErrorAlert, EmptyState, Avatar
     posts/, comments/, messages/, profile/, notifications/, search/
-  pages/                  # Login, Register, Feed, Profile, Messages, Search, NotFound
-  hooks/                  # useConversationSocket, useDebounce
-  utils/                  # validators, formattazione date, decodifica JWT
-  App.jsx                 # componente radice (Redux Provider + Router + ciclo di vita socket)
-  main.jsx                # bootstrap tecnico (mount su #root)
+    jobs/                      # JobCard, JobCardSkeleton
+    games/                     # PuzzlesWidget, MiniSudoku, Tango, Zip, Patches
+  pages/                      # Login, Register, Feed, Profile, Messages, Search, Jobs, GamePage, SavedPosts, NotFound
+  hooks/                      # useActivityRealtime, useConversationsRealtime, useNotificationsRealtime, usePresence, useDebounce
+  utils/                      # validators, formattazione date, anteprima link, generatori dei rompicapo (miniSudoku/tango/zip/patches)
+  App.jsx                     # componente radice (Redux Provider + Router + sottoscrizione auth/realtime)
+  main.jsx                    # bootstrap tecnico (mount su #root)
 ```
 
 ## Funzionalita' completate
 
-- Registrazione, login, logout, ripristino sessione (JWT in `localStorage`)
+- Registrazione, login, logout, ripristino sessione (Firebase Auth, refresh token automatico)
 - Rotte pubbliche (`/login`, `/register`) e protette (tutto il resto)
 - Layout con navbar responsive
-- Profilo utente: visualizzazione e modifica (nome, username, bio, URL avatar)
-- Feed con paginazione, creazione/modifica/eliminazione post, like
-- Commenti sui post (creazione, modifica ed eliminazione da parte dell'autore) con paginazione
-- Conversazioni private e messaggi in tempo reale via WebSocket (creazione, modifica, eliminazione, stato letto/non letto, riconnessione automatica), con paginazione dei messaggi piu' vecchi
-- Notifiche in tempo reale per nuovi messaggi, commenti e "mi piace", con badge contatore in navbar
-- Ricerca utenti e post (risultati parziali, paginati)
+- Profilo utente: visualizzazione e modifica (nome, username, bio, avatar/copertina con upload reale, salvati come base64 in Firestore)
+- Feed con paginazione, creazione/modifica/eliminazione post in tempo reale, like in tempo reale
+- Commenti sui post (creazione, modifica ed eliminazione da parte dell'autore) con paginazione e conteggio in tempo reale
+- Conversazioni private e messaggi in tempo reale via Firestore (creazione, modifica, eliminazione, stato letto/non letto), con paginazione dei messaggi piu' vecchi
+- Notifiche in tempo reale per nuovi messaggi, commenti, "mi piace" e nuovi follower, con badge contatore in navbar
+- Ricerca utenti e post (prefix-match, risultati paginati)
+- Offerte di lavoro (`/jobs`, API pubblica `strive-benchmark`): ricerca per parola chiave, paginazione lato client, salvataggio nei preferiti (vedi sotto)
+- Rompicapo giocabili in stile LinkedIn (`/games/:slug`, card "I rompicapo di oggi" in sidebar): **Zip** (percorso hamiltoniano su griglia 6x6 con checkpoint numerati), **Patches** (partizione della griglia in rettangoli con indizio area+forma, stile Shikaku), **Mini Sudoku** (6x6, box 2x3), **Tango** (griglia sole/luna 6x6 con vincoli di bilanciamento e uguaglianza/differenza) — generati proceduralmente ad ogni partita, nessuna libreria esterna
+- Elementi salvati (`/saved`): post e offerte di lavoro salvati insieme nella stessa pagina (offerte in cima), ciascuno con la propria card invariata (`PostCard`/`JobCard`)
 - Stati di caricamento, errore e vuoto su ogni schermata con fetch
-- Controlli di autorizzazione lato client (pulsanti di modifica/eliminazione visibili solo al proprietario; accesso a una conversazione altrui via URL bloccato)
+- Controlli di autorizzazione reali lato server via Firestore Security Rules (non solo lato client): un utente non partecipante non puo' leggere/scrivere una conversazione/messaggio altrui nemmeno bypassando la UI
 
 ## Limiti noti
 
-- **Upload immagini reale non supportato per i post**: solo l'avatar profilo supporta upload reale (`<input type="file">`, max 2MB, salvato come data URL). I post usano ancora un campo URL testuale generico (immagine/video/link).
-- **Nessuna notifica push del sistema operativo, OAuth o sistema di pagamento** (fuori scope): le "notifiche" sono realtime in-app via WebSocket, non push del browser/OS.
-- **`json-server-auth` non mantenuto attivamente**: dipende da una versione datata di `jsonwebtoken` con una vulnerabilita' nota senza fix disponibile (visibile con `npm audit`). Accettabile perche' il backend e' solo un mock locale, mai esposto in produzione. Lo stesso secret viene riusato per autenticare i WebSocket.
-- **Permessi del backend mock limitati**: JSON Server Auth riconosce la proprieta' di una risorsa solo tramite un campo `userId`. Per `conversations` (che ha due partecipanti) e per la lettura dei `messages`, l'autorizzazione "solo i partecipanti possono vedere/scrivere" e' applicata lato client (nel componente `ConversationView`), non dal backend: chiamate dirette alle API bypassando la UI potrebbero in teoria leggere conversazioni altrui. Accettabile per un mock di sviluppo, da rivedere con un backend reale. Le `notifications` invece hanno autorizzazione reale lato server (owner-only).
-- `GET /users` (usato anche dalla ricerca) restituisce anche l'hash della password di ogni utente — limite di json-server, non filtrato.
+- **Ricerca per prefisso, non full-text**: Firestore non ha un equivalente di `?q=` di json-server (substring-match). La ricerca utenti/post trova solo risultati che *iniziano* per il testo digitato (su username/nome per gli utenti, sul contenuto per i post), non corrispondenze a meta' stringa.
+- **Feed "Chi segui" limitato a 10 utenti seguiti per pagina**: il filtro `where(..., 'in', ...)` di Firestore accetta al massimo 10 valori; chi segue piu' di 10 persone vede solo i post dei primi 10 in ogni pagina di query.
+- **Notifiche create client-side, non da un backend**: chi compie l'azione (like/commento/follow/messaggio) scrive direttamente il documento di notifica per il destinatario. Le Security Rules impediscono di creare notifiche per se stessi o spacciandosi per un altro attore, ma non c'e' una vera validazione server-side (richiederebbe Cloud Functions, piano Blaze a pagamento).
+- **Presenza online/offline via heartbeat, non `onDisconnect`**: Firestore non ha l'equivalente di Realtime Database `onDisconnect`. Ogni client aggiorna `presence/{uid}` ogni 25s; "online" e' definito come "aggiornato negli ultimi 45s". Una chiusura brusca (crash, rete che cade) lascia l'utente "online" fino al timeout, non e' istantaneo.
+- **Avatar/copertina/foto dei post limitati a 300-700KB** (base64 in Firestore, non un vero object storage — vedi "Upload immagini vs Storage" sopra): niente OAuth/pagamento (fuori scope dichiarato).
+- `GET` su `users` non filtra campi sensibili lato server: qualunque utente autenticato puo' leggere il profilo Firestore di un altro utente (email inclusa) — le password non sono piu' un problema (gestite da Firebase Auth, mai in Firestore), ma l'email sì.
+- Le notifiche di commento/mi-piace aprono la home (non esiste ancora una rotta di dettaglio del singolo post da linkare).
+- **Offerte di lavoro salvate come oggetto intero, non come id**: l'API `strive-benchmark` non espone un endpoint "get job by id", quindi il segnalibro su un'offerta salva l'intero oggetto job dentro `savedJobs` sull'utente (stesso pattern di `experiences`) invece di un riferimento leggero.
+- **Rompicapo senza verifica di unicita' della soluzione**: i generatori (Zip/Patches/Mini Sudoku/Tango) garantiscono che *una* soluzione valida esista, ma non escludono soluzioni alternative altrettanto valide — la vittoria si basa sulla correttezza strutturale del tentativo del giocatore, non sul confronto con la soluzione originale. Difficolta' fissa (nessun livello facile/difficile), nessuna persistenza della partita in corso (si rigenera ad ogni apertura/"Nuova partita").
+- **Notizie senza link cliccabile all'articolo**: la chiave apitube usata e' di livello trial — ogni campo con un URL (`href`, `source.domain`, `links[].url`) torna troncato con un suffisso letterale `[Upgrade subscription plan]`, quindi non c'e' modo di linkare l'articolo originale senza passare a un piano a pagamento.
 
 ## Possibili miglioramenti futuri
 
-- Upload reale delle immagini nei post (oggi solo l'avatar profilo lo supporta) con storage dedicato
+- Cloud Functions (piano Blaze) per spostare la creazione delle notifiche lato server, con validazione reale invece che affidarsi alle sole Security Rules
 - Rotta di dettaglio del singolo post, per linkare le notifiche di commento/mi-piace al post esatto
-- Backend reale con autorizzazione a grana fine (es. Postgres + policy per conversazione)
+- Presenza via Realtime Database (`onDisconnect`) invece dell'heartbeat Firestore, per una rilevazione offline istantanea
+- Ricerca full-text reale con un servizio dedicato (es. Algolia/Typesense) al posto del prefix-match
+- Livelli di difficolta' e verifica di unicita' della soluzione per i rompicapo
+- Piano apitube a pagamento (o provider di notizie alternativo) per avere link cliccabili agli articoli

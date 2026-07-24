@@ -1,15 +1,17 @@
-import { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useEffect, useState } from 'react'
+import { useDispatch, useSelector, shallowEqual } from 'react-redux'
 import Button from 'react-bootstrap/Button'
 import {
   fetchComments,
   addComment,
   editComment,
   removeComment,
+  toggleCommentLike,
   selectCommentsForPost,
   selectCommentsStatusForPost,
-  selectCommentsPageForPost,
-  selectCommentsTotalForPost,
+  selectCommentsCursorForPost,
+  selectCommentsHasMoreForPost,
+  selectLikesForComment,
 } from '../../features/comments/commentsSlice'
 import { selectUserById } from '../../features/users/usersSlice'
 import { selectCurrentUser } from '../../features/auth/authSlice'
@@ -21,7 +23,12 @@ import { requestConfirm } from '../../utils/confirm'
 function CommentRow({ comment, currentUser, postId }) {
   const dispatch = useDispatch()
   const author = useSelector(selectUserById(comment.userId))
+  const likes = useSelector(selectLikesForComment(comment.id), shallowEqual)
   const isOwn = currentUser.id === comment.userId
+  const [isPopping, setIsPopping] = useState(false)
+
+  const currentLike = likes.find((like) => like.userId === currentUser.id)
+  const currentReactionType = currentLike ? currentLike.type || 'like' : null
 
   const handleDelete = async () => {
     const confirmed = await requestConfirm({
@@ -32,6 +39,12 @@ function CommentRow({ comment, currentUser, postId }) {
     if (confirmed) dispatch(removeComment({ id: comment.id, postId }))
   }
 
+  const handleReact = (type) => {
+    dispatch(toggleCommentLike({ commentId: comment.id, postId, userId: currentUser.id, type }))
+    setIsPopping(true)
+    setTimeout(() => setIsPopping(false), 300)
+  }
+
   return (
     <CommentItem
       comment={comment}
@@ -40,27 +53,29 @@ function CommentRow({ comment, currentUser, postId }) {
       canDelete={isOwn}
       onEdit={(content) => dispatch(editComment({ id: comment.id, postId, content }))}
       onDelete={handleDelete}
+      reactionType={currentReactionType}
+      reactionCount={likes.length}
+      isPopping={isPopping}
+      onReact={handleReact}
     />
   )
 }
 
 export default function CommentList({ postId }) {
   const dispatch = useDispatch()
-  const comments = useSelector(selectCommentsForPost(postId))
+  const comments = useSelector(selectCommentsForPost(postId), shallowEqual)
   const status = useSelector(selectCommentsStatusForPost(postId))
-  const page = useSelector(selectCommentsPageForPost(postId))
-  const totalCount = useSelector(selectCommentsTotalForPost(postId))
+  const cursor = useSelector(selectCommentsCursorForPost(postId))
+  const hasMore = useSelector(selectCommentsHasMoreForPost(postId))
   const currentUser = useSelector(selectCurrentUser)
 
   useEffect(() => {
-    dispatch(fetchComments({ postId, page: 1 }))
+    dispatch(fetchComments({ postId }))
   }, [dispatch, postId])
 
   const handleAddComment = (content) => {
     dispatch(addComment({ postId, userId: currentUser.id, content }))
   }
-
-  const hasMore = comments.length < totalCount
 
   return (
     <div className="mt-3 border-top pt-3">
@@ -80,7 +95,7 @@ export default function CommentList({ postId }) {
             size="sm"
             variant="outline-secondary"
             disabled={status === 'loading'}
-            onClick={() => dispatch(fetchComments({ postId, page: page + 1 }))}
+            onClick={() => dispatch(fetchComments({ postId, cursor }))}
           >
             {status === 'loading' ? 'Caricamento...' : 'Carica altri commenti'}
           </Button>

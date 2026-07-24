@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch, useSelector, shallowEqual } from 'react-redux'
 import Card from 'react-bootstrap/Card'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Modal from 'react-bootstrap/Modal'
@@ -9,13 +9,15 @@ import UserHoverCard from '../common/UserHoverCard'
 import PostForm from './PostForm'
 import CommentList from '../comments/CommentList'
 import ShareMenu from './ShareMenu'
+import ReactionButton from '../common/ReactionButton'
 import { selectUserById } from '../../features/users/usersSlice'
 import { selectCurrentUser } from '../../features/auth/authSlice'
 import { updatePost, deletePost, toggleLike, selectLikesForPost } from '../../features/posts/postsSlice'
+import { updateProfile } from '../../features/users/usersSlice'
 import {
-  fetchComments,
-  selectCommentsStatusForPost,
-  selectCommentsTotalForPost,
+  fetchCommentsCount,
+  selectCommentsCountForPost,
+  selectCommentsCountStatusForPost,
 } from '../../features/comments/commentsSlice'
 import { formatRelativeTime } from '../../utils/dateFormat'
 import { getLinkType, getYoutubeEmbedUrl } from '../../utils/linkPreview'
@@ -25,24 +27,28 @@ export default function PostCard({ post }) {
   const dispatch = useDispatch()
   const author = useSelector(selectUserById(post.userId))
   const currentUser = useSelector(selectCurrentUser)
-  const likes = useSelector(selectLikesForPost(post.id))
-  const commentsTotal = useSelector(selectCommentsTotalForPost(post.id))
-  const commentsStatus = useSelector(selectCommentsStatusForPost(post.id))
+  const likes = useSelector(selectLikesForPost(post.id), shallowEqual)
+  const commentsTotal = useSelector(selectCommentsCountForPost(post.id))
+  const commentsCountStatus = useSelector(selectCommentsCountStatusForPost(post.id))
   const [isEditing, setIsEditing] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [isPopping, setIsPopping] = useState(false)
 
   const isOwner = currentUser.id === post.userId
-  const isLiked = likes.some((like) => like.userId === currentUser.id)
+  const currentLike = likes.find((like) => like.userId === currentUser.id)
+  const currentReactionType = currentLike ? currentLike.type || 'like' : null
+  const savedPostIds = currentUser.savedPostIds || []
+  const isSaved = savedPostIds.includes(post.id)
 
   // Il conteggio commenti deve comparire anche prima di aprire la lista
-  // (come i like): si scarica la prima pagina di commenti al montaggio del
-  // post invece che solo all'apertura di CommentList.
+  // (come i like): una query di conteggio (getCountFromServer, vedi
+  // commentsService) invece di scaricare la prima pagina di contenuto solo
+  // per contare le righe.
   useEffect(() => {
-    if (commentsStatus === 'idle') {
-      dispatch(fetchComments({ postId: post.id, page: 1 }))
+    if (commentsCountStatus === 'idle') {
+      dispatch(fetchCommentsCount(post.id))
     }
-  }, [dispatch, post.id, commentsStatus])
+  }, [dispatch, post.id, commentsCountStatus])
 
   const handleUpdate = ({ content, imageUrl }) => {
     dispatch(
@@ -60,10 +66,17 @@ export default function PostCard({ post }) {
     if (confirmed) dispatch(deletePost(post.id))
   }
 
-  const handleToggleLike = () => {
-    dispatch(toggleLike({ postId: post.id, userId: currentUser.id }))
+  const handleReact = (type) => {
+    dispatch(toggleLike({ postId: post.id, userId: currentUser.id, type }))
     setIsPopping(true)
     setTimeout(() => setIsPopping(false), 300)
+  }
+
+  const handleToggleSave = () => {
+    const nextSavedIds = isSaved
+      ? savedPostIds.filter((id) => id !== post.id)
+      : [post.id, ...savedPostIds]
+    dispatch(updateProfile({ id: currentUser.id, changes: { savedPostIds: nextSavedIds } }))
   }
 
   return (
@@ -130,16 +143,12 @@ export default function PostCard({ post }) {
         )}
 
         <div className="d-flex align-items-center gap-3 text-secondary">
-          <button
-            type="button"
-            className={`btn btn-sm ${isLiked ? 'btn-primary' : 'btn-outline-primary'}`}
-            onClick={handleToggleLike}
-          >
-            <i
-              className={`bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'} me-1 ${isPopping ? 'like-pop' : ''}`}
-            ></i>
-            {likes.length}
-          </button>
+          <ReactionButton
+            reactionType={currentReactionType}
+            count={likes.length}
+            isPopping={isPopping}
+            onReact={handleReact}
+          />
           <button
             type="button"
             className="btn btn-sm btn-outline-secondary"
@@ -149,6 +158,15 @@ export default function PostCard({ post }) {
             {commentsTotal} Commenti
           </button>
           <ShareMenu post={post} />
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary ms-auto"
+            onClick={handleToggleSave}
+            aria-label={isSaved ? 'Rimuovi dai salvati' : 'Salva post'}
+            title={isSaved ? 'Rimuovi dai salvati' : 'Salva post'}
+          >
+            <i className={`bi ${isSaved ? 'bi-bookmark-fill' : 'bi-bookmark'}`}></i>
+          </button>
         </div>
 
         {showComments && <CommentList postId={post.id} />}

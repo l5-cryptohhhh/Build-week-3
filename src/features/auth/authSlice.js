@@ -24,13 +24,8 @@ export const loginUser = createAsyncThunk(
   },
 )
 
-export const restoreSession = createAsyncThunk('auth/restore', async () => {
-  return authService.restoreSession()
-})
-
 const initialState = {
   user: null,
-  token: null,
   status: 'idle',
   error: null,
   initialized: false,
@@ -40,12 +35,19 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    logout(state) {
-      authService.logout()
+    sessionCleared(state) {
       state.user = null
-      state.token = null
       state.status = 'idle'
       state.error = null
+    },
+    // Dispatched dal listener onAuthStateChanged montato in App.jsx (vedi
+    // authService.subscribeToAuthChanges): sostituisce il vecchio thunk
+    // restoreSession basato su JWT in localStorage. `initialized` diventa
+    // true al primo evento, sia che l'utente risulti loggato o meno.
+    authStateChanged(state, action) {
+      state.initialized = true
+      state.user = action.payload
+      state.status = action.payload ? 'succeeded' : 'idle'
     },
   },
   extraReducers: (builder) => {
@@ -56,8 +58,7 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.status = 'succeeded'
-        state.user = action.payload.user
-        state.token = action.payload.accessToken
+        state.user = action.payload
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.status = 'failed'
@@ -69,36 +70,37 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.status = 'succeeded'
-        state.user = action.payload.user
-        state.token = action.payload.accessToken
+        state.user = action.payload
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.status = 'failed'
         state.error = action.payload || 'Credenziali non valide.'
       })
-      .addCase(restoreSession.fulfilled, (state, action) => {
-        state.initialized = true
-        if (action.payload) {
-          state.user = action.payload.user
-          state.token = action.payload.token
-          state.status = 'succeeded'
-        }
-      })
       .addCase(updateProfile.fulfilled, (state, action) => {
         if (state.user && state.user.id === action.payload.id) {
           state.user = action.payload
-          authService.persistUser(action.payload)
         }
       })
   },
 })
 
-export const { logout } = authSlice.actions
+export const { sessionCleared, authStateChanged } = authSlice.actions
 export default authSlice.reducer
 
+// Thunk invece di un semplice action creator: `authService.logout()` e' un
+// side effect (signOut di Firebase Auth), non appartiene al body di un
+// reducer che deve restare puro. `sessionCleared` resta comunque ridondante
+// con l'evento che onAuthStateChanged emettera' a sua volta (authStateChanged
+// con payload null) ma aggiorna lo stato subito, senza aspettare il round-trip.
+export function logout() {
+  return async (dispatch) => {
+    await authService.logout()
+    dispatch(sessionCleared())
+  }
+}
+
 export const selectCurrentUser = (state) => state.auth.user
-export const selectAuthToken = (state) => state.auth.token
-export const selectIsAuthenticated = (state) => Boolean(state.auth.token)
+export const selectIsAuthenticated = (state) => Boolean(state.auth.user)
 export const selectAuthStatus = (state) => state.auth.status
 export const selectAuthError = (state) => state.auth.error
 export const selectAuthInitialized = (state) => state.auth.initialized

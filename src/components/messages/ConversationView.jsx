@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { Link } from 'react-router-dom'
+import { useDispatch, useSelector, shallowEqual } from 'react-redux'
 import Button from 'react-bootstrap/Button'
 import LoadingSpinner from '../common/LoadingSpinner'
 import RowSkeleton from '../common/RowSkeleton'
@@ -17,8 +18,8 @@ import {
   markMessageAsRead,
   selectMessagesForConversation,
   selectMessagesStatus,
-  selectMessagesPageForConversation,
-  selectMessagesTotalForConversation,
+  selectMessagesCursorForConversation,
+  selectMessagesHasMoreForConversation,
   selectConversations,
   selectConversationsStatus,
   conversationMarkedRead,
@@ -34,10 +35,10 @@ import { requestConfirm } from '../../utils/confirm'
 export default function ConversationView({ conversationId, compact = false, onClose }) {
   const dispatch = useDispatch()
   const currentUser = useSelector(selectCurrentUser)
-  const messages = useSelector(selectMessagesForConversation(conversationId))
+  const messages = useSelector(selectMessagesForConversation(conversationId), shallowEqual)
   const status = useSelector(selectMessagesStatus)
-  const page = useSelector(selectMessagesPageForConversation(conversationId))
-  const totalCount = useSelector(selectMessagesTotalForConversation(conversationId))
+  const cursor = useSelector(selectMessagesCursorForConversation(conversationId))
+  const hasMore = useSelector(selectMessagesHasMoreForConversation(conversationId))
   const conversations = useSelector(selectConversations)
   const conversationsStatus = useSelector(selectConversationsStatus)
   const bottomRef = useRef(null)
@@ -58,7 +59,7 @@ export default function ConversationView({ conversationId, compact = false, onCl
 
   useEffect(() => {
     if (conversation) {
-      dispatch(fetchMessages({ conversationId, page: 1 }))
+      dispatch(fetchMessages({ conversationId }))
       dispatch(conversationMarkedRead(conversationId))
     }
   }, [dispatch, conversationId, conversation])
@@ -86,7 +87,7 @@ export default function ConversationView({ conversationId, compact = false, onCl
   const handleLoadPrevious = () => {
     if (scrollRef.current) prevScrollHeightRef.current = scrollRef.current.scrollHeight
     isLoadingMoreRef.current = true
-    dispatch(fetchMessages({ conversationId, page: page + 1 }))
+    dispatch(fetchMessages({ conversationId, cursor }))
   }
 
   if (conversationsStatus === 'loading' && !conversation) {
@@ -131,11 +132,18 @@ export default function ConversationView({ conversationId, compact = false, onCl
     )
   }
 
-  const hasMore = messages.length < totalCount
-
   return (
     <div className="d-flex flex-column" style={{ height }}>
       <div className="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+        {!compact && (
+          <Link
+            to="/messages"
+            className="btn btn-sm btn-link text-secondary p-0 d-md-none"
+            aria-label="Torna alle conversazioni"
+          >
+            <i className="bi bi-arrow-left fs-5"></i>
+          </Link>
+        )}
         {compact && <Avatar user={otherUser} size={28} />}
         <span className="fw-semibold text-truncate">{otherUser?.fullName || 'Conversazione'}</span>
         {onClose && (

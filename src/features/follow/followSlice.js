@@ -51,7 +51,15 @@ function mergeRecords(state, records) {
 const followSlice = createSlice({
   name: 'follow',
   initialState,
-  reducers: {},
+  reducers: {
+    followReceived(state, action) {
+      if (state.items.some((record) => record.id === action.payload.id)) return
+      state.items.push(action.payload)
+    },
+    followRemovedFromSocket(state, action) {
+      state.items = state.items.filter((record) => record.id !== action.payload.id)
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchFollowData.pending, (state) => {
@@ -69,7 +77,13 @@ const followSlice = createSlice({
       })
       .addCase(toggleFollow.fulfilled, (state, action) => {
         if (action.payload.following) {
-          state.items.push(action.payload.record)
+          // Dedup by id: il listener realtime (followReceived) puo'
+          // ricevere l'eco della scrittura locale prima ancora che questo
+          // thunk si risolva, altrimenti il follower risulterebbe doppio.
+          const record = action.payload.record
+          if (!state.items.some((item) => item.id === record.id)) {
+            state.items.push(record)
+          }
         } else {
           state.items = state.items.filter((record) => record.id !== action.payload.followId)
         }
@@ -77,6 +91,7 @@ const followSlice = createSlice({
   },
 })
 
+export const { followReceived, followRemovedFromSocket } = followSlice.actions
 export default followSlice.reducer
 
 export const selectFollowersCount = (userId) => (state) =>
@@ -91,3 +106,12 @@ export const selectFollowingIds = (userId) => (state) =>
   state.follow.items.filter((record) => record.userId === userId).map((record) => record.followingId)
 export const selectFollowerIds = (userId) => (state) =>
   state.follow.items.filter((record) => record.followingId === userId).map((record) => record.userId)
+// Collegamenti reciproci: persone che l'utente segue e che a loro volta lo seguono.
+export const selectMutualIds = (userId) => (state) => {
+  const followerIdSet = new Set(
+    state.follow.items.filter((record) => record.followingId === userId).map((record) => record.userId),
+  )
+  return state.follow.items
+    .filter((record) => record.userId === userId && followerIdSet.has(record.followingId))
+    .map((record) => record.followingId)
+}

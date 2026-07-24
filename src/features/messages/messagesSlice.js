@@ -27,13 +27,14 @@ const MESSAGES_LIMIT = 20
 
 export const fetchMessages = createAsyncThunk(
   'messages/fetchMessages',
-  async ({ conversationId, page = 1 }, { rejectWithValue }) => {
+  async ({ conversationId, cursor }, { getState, rejectWithValue }) => {
     try {
-      const { messages, totalCount } = await messagesService.fetchMessages(conversationId, {
-        page,
+      const { messages, hasMore, nextCursor } = await messagesService.fetchMessages(conversationId, {
+        cursor,
         limit: MESSAGES_LIMIT,
+        userId: getState().auth.user.id,
       })
-      return { conversationId, messages, totalCount, page }
+      return { conversationId, messages, hasMore, nextCursor, isFirstPage: !cursor }
     } catch (err) {
       return rejectWithValue(err.message)
     }
@@ -113,8 +114,8 @@ const initialState = {
   conversations: [],
   conversationsStatus: 'idle',
   messagesByConversationId: {},
-  messagesPageByConversationId: {},
-  messagesTotalByConversationId: {},
+  messagesCursorByConversationId: {},
+  messagesHasMoreByConversationId: {},
   messagesStatus: 'idle',
   unreadCountByConversationId: {},
   error: null,
@@ -130,8 +131,6 @@ const messagesSlice = createSlice({
       if (!list) return
       if (!list.some((item) => item.id === message.id)) {
         list.push(message)
-        state.messagesTotalByConversationId[message.conversationId] =
-          (state.messagesTotalByConversationId[message.conversationId] || list.length - 1) + 1
       }
     },
     messageUpdatedFromSocket(state, action) {
@@ -147,10 +146,6 @@ const messagesSlice = createSlice({
       if (!list) return
       if (list.some((item) => item.id === id)) {
         state.messagesByConversationId[conversationId] = list.filter((item) => item.id !== id)
-        state.messagesTotalByConversationId[conversationId] = Math.max(
-          0,
-          (state.messagesTotalByConversationId[conversationId] || 1) - 1,
-        )
       }
     },
     conversationReceived(state, action) {
@@ -183,20 +178,30 @@ const messagesSlice = createSlice({
         state.error = action.payload
       })
       .addCase(startConversation.fulfilled, (state, action) => {
-        state.conversations.push(action.payload)
+        // Dedup by id come conversationReceived: chi crea la conversazione
+        // riceve sia l'esito diretto di questo thunk sia l'eco del proprio
+        // listener realtime (useConversationsRealtime), che la aggiunge
+        // gia' deduplicata - senza questo controllo, se l'eco arriva prima
+        // del fulfilled del thunk, la conversazione finisce due volte in
+        // `state.conversations` (visto come React key duplicata in
+        // ConversationList/MessengerWidget).
+        if (!state.conversations.some((item) => item.id === action.payload.id)) {
+          state.conversations.push(action.payload)
+        }
       })
       .addCase(fetchMessages.pending, (state) => {
         state.messagesStatus = 'loading'
         state.error = null
       })
       .addCase(fetchMessages.fulfilled, (state, action) => {
-        const { conversationId, messages, totalCount, page } = action.payload
+        const { conversationId, messages, hasMore, nextCursor, isFirstPage } = action.payload
         state.messagesStatus = 'succeeded'
-        state.messagesTotalByConversationId[conversationId] = totalCount
-        state.messagesPageByConversationId[conversationId] = page
+        state.messagesHasMoreByConversationId[conversationId] = hasMore
+        state.messagesCursorByConversationId[conversationId] = nextCursor
         const existing = state.messagesByConversationId[conversationId] || []
-        state.messagesByConversationId[conversationId] =
-          page === 1 ? messages : [...messages, ...existing]
+        state.messagesByConversationId[conversationId] = isFirstPage
+          ? messages
+          : [...messages, ...existing]
       })
       .addCase(fetchMessages.rejected, (state, action) => {
         state.messagesStatus = 'failed'
@@ -207,8 +212,6 @@ const messagesSlice = createSlice({
         const list = state.messagesByConversationId[conversationId] || []
         if (!list.some((message) => message.id === action.payload.id)) {
           state.messagesByConversationId[conversationId] = [...list, action.payload]
-          state.messagesTotalByConversationId[conversationId] =
-            (state.messagesTotalByConversationId[conversationId] || list.length) + 1
         }
       })
       .addCase(markMessageAsRead.fulfilled, (state, action) => {
@@ -235,10 +238,6 @@ const messagesSlice = createSlice({
           state.messagesByConversationId[conversationId] = list.filter(
             (message) => message.id !== id,
           )
-          state.messagesTotalByConversationId[conversationId] = Math.max(
-            0,
-            (state.messagesTotalByConversationId[conversationId] || 1) - 1,
-          )
         }
       })
   },
@@ -259,10 +258,10 @@ export const selectConversationsStatus = (state) => state.messages.conversations
 export const selectMessagesForConversation = (conversationId) => (state) =>
   state.messages.messagesByConversationId[conversationId] || []
 export const selectMessagesStatus = (state) => state.messages.messagesStatus
-export const selectMessagesPageForConversation = (conversationId) => (state) =>
-  state.messages.messagesPageByConversationId[conversationId] || 1
-export const selectMessagesTotalForConversation = (conversationId) => (state) =>
-  state.messages.messagesTotalByConversationId[conversationId] || 0
+export const selectMessagesCursorForConversation = (conversationId) => (state) =>
+  state.messages.messagesCursorByConversationId[conversationId] || null
+export const selectMessagesHasMoreForConversation = (conversationId) => (state) =>
+  state.messages.messagesHasMoreByConversationId[conversationId] ?? true
 export const selectUnreadCountForConversation = (conversationId) => (state) =>
   state.messages.unreadCountByConversationId[conversationId] || 0
 export const selectTotalUnreadMessages = (state) =>

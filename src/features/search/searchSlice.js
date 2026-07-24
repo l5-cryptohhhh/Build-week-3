@@ -6,8 +6,8 @@ export const searchUsers = createAsyncThunk(
   'search/searchUsers',
   async ({ q, page = 1, limit = 10 }, { rejectWithValue }) => {
     try {
-      const { users, totalCount } = await usersService.searchUsers({ q, page, limit })
-      return { users, totalCount, page }
+      const { users, hasMore } = await usersService.searchUsers({ q, page, limit })
+      return { users, hasMore, page }
     } catch (err) {
       return rejectWithValue(err.message)
     }
@@ -18,9 +18,9 @@ export const searchPosts = createAsyncThunk(
   'search/searchPosts',
   async ({ q, page = 1, limit = 5 }, { rejectWithValue }) => {
     try {
-      const { posts, totalCount } = await postsService.fetchPosts({ q, page, limit })
+      const { posts, hasMore } = await postsService.searchPostsByContent({ q, page, limit })
       const likes = await postsService.fetchLikesForPosts(posts.map((post) => post.id))
-      return { posts, totalCount, page, likes }
+      return { posts, hasMore, page, likes }
     } catch (err) {
       return rejectWithValue(err.message)
     }
@@ -29,8 +29,8 @@ export const searchPosts = createAsyncThunk(
 
 const initialState = {
   query: '',
-  users: { items: [], page: 1, limit: 10, totalCount: 0, status: 'idle' },
-  posts: { items: [], page: 1, limit: 5, totalCount: 0, status: 'idle' },
+  users: { items: [], page: 1, limit: 10, hasMore: false, status: 'idle' },
+  posts: { items: [], page: 1, limit: 5, hasMore: false, status: 'idle' },
 }
 
 const searchSlice = createSlice({
@@ -50,12 +50,12 @@ const searchSlice = createSlice({
       })
       .addCase(searchUsers.fulfilled, (state, action) => {
         state.users.status = 'succeeded'
-        state.users.totalCount = action.payload.totalCount
+        state.users.hasMore = action.payload.hasMore
         state.users.page = action.payload.page
-        state.users.items =
-          action.payload.page === 1
-            ? action.payload.users
-            : [...state.users.items, ...action.payload.users]
+        // A differenza della paginazione a cursore del feed, la ricerca
+        // rifa' ogni volta la query sull'intera finestra (limit * page):
+        // qui e' sempre una sostituzione, mai un append.
+        state.users.items = action.payload.users
       })
       .addCase(searchUsers.rejected, (state) => {
         state.users.status = 'failed'
@@ -65,16 +65,34 @@ const searchSlice = createSlice({
       })
       .addCase(searchPosts.fulfilled, (state, action) => {
         state.posts.status = 'succeeded'
-        state.posts.totalCount = action.payload.totalCount
+        state.posts.hasMore = action.payload.hasMore
         state.posts.page = action.payload.page
-        state.posts.items =
-          action.payload.page === 1
-            ? action.payload.posts
-            : [...state.posts.items, ...action.payload.posts]
+        state.posts.items = action.payload.posts
       })
       .addCase(searchPosts.rejected, (state) => {
         state.posts.status = 'failed'
       })
+      // Ascolta le azioni di postsSlice per tipo (stringa), non importando i
+      // thunk direttamente: postsSlice.js importa gia' `searchPosts` da qui,
+      // un import nell'altro verso creerebbe un ciclo tra i due moduli (che
+      // con `extraReducers` valutati a module-load-time rischia di leggere
+      // `updatePost`/`deletePost` ancora `undefined`). Un post modificato o
+      // eliminato puo' essere gia' in cache anche nei risultati di ricerca
+      // (copia separata in `state.posts.items`), senza questo resterebbe la
+      // versione vecchia/cancellata finche' non si rifa' la ricerca.
+      .addMatcher(
+        (action) => action.type === 'posts/updatePost/fulfilled',
+        (state, action) => {
+          const index = state.posts.items.findIndex((post) => post.id === action.payload.id)
+          if (index !== -1) state.posts.items[index] = action.payload
+        },
+      )
+      .addMatcher(
+        (action) => action.type === 'posts/deletePost/fulfilled',
+        (state, action) => {
+          state.posts.items = state.posts.items.filter((post) => post.id !== action.payload)
+        },
+      )
   },
 })
 

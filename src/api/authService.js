@@ -1,93 +1,71 @@
-import httpClient, { saveToken, getToken, clearToken } from './httpClient'
-import { decodeJwtPayload, isTokenExpired } from '../utils/jwt'
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+} from 'firebase/auth'
+import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { auth, db } from '../firebase'
 
-const USER_STORAGE_KEY = 'social_app_user'
-
-function saveUser(user) {
-  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
+function userDocRef(uid) {
+  return doc(db, 'users', uid)
 }
 
-function getStoredUser() {
-  const raw = localStorage.getItem(USER_STORAGE_KEY)
-  return raw ? JSON.parse(raw) : null
+function toUser(uid, data) {
+  return { id: uid, ...data }
 }
 
-function clearUser() {
-  localStorage.removeItem(USER_STORAGE_KEY)
-}
-
-// json-server-auth returns { accessToken, user } on /login, but /register
-// only guarantees { accessToken }: resolve the user record from the JWT if missing.
-async function resolveUser(data) {
-  if (data.user) return data.user
-  const { sub } = decodeJwtPayload(data.accessToken)
-  const { data: user } = await httpClient.get(`/users/${sub}`)
-  return user
+export async function fetchUserProfile(uid) {
+  const snapshot = await getDoc(userDocRef(uid))
+  return snapshot.exists() ? toUser(uid, snapshot.data()) : null
 }
 
 export async function register({ email, password, username, fullName, jobTitle = '' }) {
-  const { data } = await httpClient.post('/register', {
+  const credential = await createUserWithEmailAndPassword(auth, email, password)
+  const profile = {
     email,
-    password,
     username,
+    usernameLower: username.toLowerCase(),
     fullName,
+    fullNameLower: fullName.toLowerCase(),
     jobTitle,
     avatarUrl: '',
+    coverUrl: '',
     bio: '',
+    experiences: [],
+    savedPostIds: [],
     createdAt: new Date().toISOString(),
-  })
-  saveToken(data.accessToken)
-  const user = await resolveUser(data)
-  saveUser(user)
-  return { user, accessToken: data.accessToken }
+  }
+  await setDoc(userDocRef(credential.user.uid), profile)
+  return toUser(credential.user.uid, profile)
 }
 
 export async function login({ email, password }) {
-  const { data } = await httpClient.post('/login', { email, password })
-  saveToken(data.accessToken)
-  const user = await resolveUser(data)
-  saveUser(user)
-  return { user, accessToken: data.accessToken }
-}
-
-export function logout() {
-  clearToken()
-  clearUser()
-}
-
-// Non ci si fida ciecamente dello snapshot utente salvato in localStorage:
-// se il backend mock viene resettato/reseedato (vedi CHECKPOINT.md), lo
-// stesso id puo' finire per appartenere a un account diverso, e una sessione
-// cache scaduta mostrerebbe silenziosamente il profilo di qualcun altro. Si
-// riverifica quindi l'id contro il server e si confronta l'email presente
-// nel token con quella dell'utente restituito, esattamente come fa
-// resolveUser() al login.
-export async function restoreSession() {
-  const token = getToken()
-  if (!token || isTokenExpired(token)) {
-    logout()
-    return null
+  const credential = await signInWithEmailAndPassword(auth, email, password)
+  const user = await fetchUserProfile(credential.user.uid)
+  if (!user) {
+    throw new Error('Profilo utente non trovato.')
   }
+  return user
+}
 
-  const cachedUser = getStoredUser()
+export async function logout() {
+  await signOut(auth)
+}
 
-  try {
-    const { sub, email } = decodeJwtPayload(token)
-    const { data: freshUser } = await httpClient.get(`/users/${sub}`)
-    if (freshUser.email !== email) {
-      // L'id nel token ora appartiene a un account diverso: la sessione non e' piu' valida.
-      logout()
-      return null
+// Sostituisce il vecchio restoreSession basato su JWT in localStorage:
+// Firebase Auth mantiene la sessione da solo (IndexedDB + refresh automatico
+// del token) e notifica ogni cambio di stato tramite questo listener,
+// montato una sola volta in App.jsx. Il profilo esteso (username, avatar,
+// bio...) vive in Firestore e va recuperato a parte, l'oggetto utente di
+// Firebase Auth espone solo uid/email.
+export function subscribeToAuthChanges(callback) {
+  return onAuthStateChanged(auth, async (firebaseUser) => {
+    if (!firebaseUser) {
+      callback(null)
+      return
     }
-    saveUser(freshUser)
-    return { token, user: freshUser }
-  } catch {
-    // Server irraggiungibile: meglio riusare la cache che disconnettere per un blip di rete.
-    if (cachedUser) return { token, user: cachedUser }
-    return null
-  }
-}
-
-export function persistUser(user) {
-  saveUser(user)
+    const user = await fetchUserProfile(firebaseUser.uid)
+    callback(user)
+  })
 }

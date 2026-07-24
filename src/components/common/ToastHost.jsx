@@ -21,7 +21,7 @@ export default function ToastHost() {
   const removeToast = (id) => setToasts((prev) => prev.filter((toast) => toast.id !== id))
 
   return (
-    <ToastContainer position="bottom-end" className="p-3" style={{ zIndex: 1080 }}>
+    <ToastContainer containerPosition="fixed" className="p-3 app-toast-container">
       {toasts.map((toast) => (
         <Toast
           key={toast.id}
